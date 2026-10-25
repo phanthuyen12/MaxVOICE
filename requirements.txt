@@ -1,0 +1,16 @@
+PyQt6>=6.6
+faster-whisper==1.1.0
+# argostranslate builds its `sentencepiece` dependency from source on
+# Python 3.13 (no prebuilt wheel yet) — needs `cmake` installed on the
+# system first (brew install cmake / apt install cmake / choco install
+# cmake), otherwise the build fails with "Failed building wheel for
+# sentencepiece".
+argostranslate>=1.11.0
+requests>=2.31.0
+numpy>=1.26
+
+# vieneu (free, offline Vietnamese TTS) needs a platform-specific extra index
+# for its llama-cpp-python/onnxruntime backend — see README.md "Cài đặt" for
+# the exact `pip install` command per OS. Also needs the system `espeak` (or
+# `espeak-ng`) package installed separately (not pip-installable).
+vieneu
