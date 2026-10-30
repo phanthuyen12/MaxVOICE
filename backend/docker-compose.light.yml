@@ -1,0 +1,28 @@
+services:
+  redis:
+    image: redis:7-alpine
+    container_name: kingvoice-redis
+    restart: unless-stopped
+    command: ["redis-server", "--appendonly", "yes"]
+    volumes:
+      - ./redis_data:/data
+
+  kingvoice-light:
+    build:
+      context: .
+      dockerfile: Dockerfile.light
+    container_name: kingvoice-light
+    restart: unless-stopped
+    depends_on:
+      - redis
+    ports:
+      - "${PORT:-8686}:8686"
+    environment:
+      - PORT=8686
+      - REDIS_URL=redis://redis:6379/0
+      - KINGVOICE_RETENTION_HOURS=${KINGVOICE_RETENTION_HOURS:-2}
+      - MAXVOICE_DATA_DIR=/data
+      - MAXVOICE_STORAGE_DIR=/data/storage
+      - MAXVOICE_WORKER_THREADS=${MAXVOICE_WORKER_THREADS:-4}
+    volumes:
+      - ./data:/data

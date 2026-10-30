@@ -8,7 +8,8 @@ _conn = None
 
 JOB_COLUMNS = [
     "id", "type", "originalFilename", "filePath", "stage", "segmentCount",
-    "durationSeconds", "defaultVoiceId", "defaultVoiceName",
+    "durationSeconds", "defaultVoiceId", "defaultVoiceName", "targetLanguage",
+    "subMode", "burnSubtitles",
     "finalVideoStatus", "finalVideoPath", "error",
     "backgroundMusicPath", "backgroundMusicName", "createdAt", "updatedAt",
 ]
@@ -110,6 +111,9 @@ def connect(db_path):
     # might be missing.
     _add_column_if_missing("jobs", "defaultVoiceId", "TEXT")
     _add_column_if_missing("jobs", "defaultVoiceName", "TEXT")
+    _add_column_if_missing("jobs", "targetLanguage", "TEXT")
+    _add_column_if_missing("jobs", "subMode", "TEXT")
+    _add_column_if_missing("jobs", "burnSubtitles", "INTEGER")
     _conn.commit()
     return _conn
 

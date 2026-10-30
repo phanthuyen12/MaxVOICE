@@ -1,0 +1,13 @@
+fastapi>=0.111.0
+uvicorn[standard]>=0.30.0
+python-multipart>=0.0.9
+pydantic>=2.7.0
+requests>=2.31.0
+redis>=5.0.0
+numpy>=1.26.0
+soundfile>=0.12.1
+edge-tts>=6.1.12
+faster-whisper==1.1.0
+argostranslate>=1.11.0
+vieneu
+

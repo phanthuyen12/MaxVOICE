@@ -74,13 +74,15 @@ def split_text_for_tts(text, max_credits=1800, min_credits=50):
     return chunks
 
 
-def group_cues_for_tts(cues, min_credits=50, max_credits=1800):
-    """Groups consecutive SRT cues ({start, end, text}) so each group's text
-    clears Resona's 50-credit minimum before it's sent as its own TTS request.
-    Individual subtitle cues (a few words, a few seconds) routinely fall under
-    that floor on their own, which Resona rejects with section_credit_limit_exceeded.
-    A merged group spans from its first cue's start to its last cue's end, so the
-    caller can still place the resulting single audio take on the timeline.
+def group_cues_for_tts(cues, min_credits=50, max_credits=1800, max_gap_sec=0.55):
+    """Groups consecutive SRT cues ({start, end, text}) ONLY when they are
+    adjacent in time (gap <= max_gap_sec) and under `min_credits`.
+
+    IMPORTANT FIX: Never merge two cues separated by a silence gap > max_gap_sec!
+    Previously, merging two cues separated by several seconds of silence caused
+    the combined cue duration (`end - start`) to span the entire silence gap,
+    which made `create_timed_audio_track` time-stretch (`atempo < 0.5`) the voice
+    into a slow, buzzing, distorted drone ("rè rề").
     """
     groups = []
     current = None
@@ -94,9 +96,10 @@ def group_cues_for_tts(cues, min_credits=50, max_credits=1800):
             current = {"start": cue["start"], "end": cue["end"], "text": cue_text}
             continue
 
+        gap = float(cue["start"]) - float(current["end"])
         merged_text = f"{current['text']} {cue_text}"
         current_under_min = text_credits(current["text"]) < min_credits
-        if current_under_min and text_credits(merged_text) <= max_credits:
+        if gap <= max_gap_sec and current_under_min and text_credits(merged_text) <= max_credits:
             current = {"start": current["start"], "end": cue["end"], "text": merged_text}
         else:
             groups.append(current)
@@ -104,16 +107,16 @@ def group_cues_for_tts(cues, min_credits=50, max_credits=1800):
     if current is not None:
         groups.append(current)
 
-    # A trailing group can still end up under the floor (e.g. the last cue is
-    # short and on its own) — fold it backwards into its neighbor.
+    # Fold trailing short group backwards ONLY if the gap to the previous group is small.
     while len(groups) > 1 and text_credits(groups[-1]["text"]) < min_credits:
-        last = groups.pop()
-        prev = groups[-1]
+        last = groups[-1]
+        prev = groups[-2]
+        gap = float(last["start"]) - float(prev["end"])
         merged_text = f"{prev['text']} {last['text']}"
-        if text_credits(merged_text) <= max_credits:
+        if gap <= max_gap_sec and text_credits(merged_text) <= max_credits:
+            groups.pop()
             groups[-1] = {"start": prev["start"], "end": last["end"], "text": merged_text}
         else:
-            groups.append(last)  # can't merge without busting the hard cap — leave as-is
             break
 
     return groups

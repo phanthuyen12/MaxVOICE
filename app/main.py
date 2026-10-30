@@ -21,10 +21,21 @@ def _prewarm_vieneu(worker, config):
     """
     if config.tts_backend != "vieneu":
         return
-    local_tts_service.list_preset_voices()
+    try:
+        local_tts_service.list_preset_voices()
+    except Exception:
+        pass
 
 
 def main():
+    # Ensure Homebrew binaries (ffmpeg, ffprobe, espeak-ng) are discoverable on macOS
+    extra_paths = ["/opt/homebrew/bin", "/usr/local/bin"]
+    current_path = os.environ.get("PATH", "")
+    for p in extra_paths:
+        if os.path.isdir(p) and p not in current_path.split(os.pathsep):
+            current_path = f"{p}{os.pathsep}{current_path}" if current_path else p
+    os.environ["PATH"] = current_path
+
     config = load_config()
     db.connect(config.db_path)
     local_tts_service.init(config)

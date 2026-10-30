@@ -16,6 +16,36 @@ _QUALITY_RETRY_RE = re.compile(
 )
 
 
+def _resolve_parent_job(job_or_clip_id):
+    """Finds the parent `jobs` row whether `job_or_clip_id` is a project/audio job ID
+    or a clip ID inside a project.
+    """
+    job = db.get_job(job_or_clip_id)
+    if job:
+        return job
+    clip = db.get_clip(job_or_clip_id)
+    if clip and clip.get("jobId"):
+        return db.get_job(clip["jobId"])
+    return None
+
+
+def _get_job_language_settings(config, job_or_clip_id, target_language=None, sub_mode=None):
+    job = _resolve_parent_job(job_or_clip_id) or {}
+    resolved_target = (
+        target_language
+        or job.get("targetLanguage")
+        or getattr(config, "target_language", "vi")
+        or "vi"
+    )
+    resolved_mode = (
+        sub_mode
+        or job.get("subMode")
+        or getattr(config, "sub_mode", "target")
+        or "target"
+    )
+    return resolved_target, resolved_mode, job
+
+
 # --- video split -----------------------------------------------------------
 #
 # A "project" (jobs row, type="video") holds an ordered list of clips (its
@@ -77,19 +107,79 @@ def handle_cut_clip(worker, config, clip_id, file_path):
         worker.submit(handle_transcribe_segment, config, clip_id, index)
 
 
-# --- transcription -----------------------------------------------------------
+# --- transcription & multilingual translation ---------------------------------
 
-def handle_transcribe_segment(worker, config, job_id, segment_index):
+def _build_cues_and_write_srt(seg_dir, raw_segments, source_language, target_language, sub_mode):
+    """Translates `raw_segments` (each having `start`, `end`, and `originalText` or `text`)
+    into `target_language` (unless `target_language == 'original'` or same as `source_language`),
+    writes `subtitle.srt` according to `sub_mode` ('target', 'bilingual', 'original'),
+    and returns `(cues, transcript_text, srt_path)`.
+    """
+    original_texts = [
+        str(cue.get("originalText") or cue.get("text") or "").strip()
+        for cue in raw_segments
+    ]
+
+    need_translation = (
+        bool(original_texts)
+        and target_language
+        and target_language != "original"
+        and not translation_service.is_same_language(source_language, target_language)
+    )
+
+    translated_texts = None
+    if need_translation:
+        try:
+            translated_texts = translation_service.translate_texts(
+                original_texts, source_language, target_language
+            )
+        except Exception as exc:
+            lang_label = translation_service.language_label(target_language)
+            raise RuntimeError(
+                f"Không dịch được phụ đề từ {source_language or 'gốc'} sang {lang_label}: {exc}"
+            )
+
+    cues = []
+    for i, cue in enumerate(raw_segments):
+        orig = original_texts[i]
+        trans = translated_texts[i].strip() if translated_texts and i < len(translated_texts) else ""
+        active_text = trans if (need_translation and trans) else orig
+        entry = {
+            "start": cue["start"],
+            "end": cue["end"],
+            "text": active_text,
+            "originalText": orig,
+        }
+        if need_translation and trans:
+            entry["translatedText"] = trans
+            entry["targetLanguage"] = target_language
+        cues.append(entry)
+
+    transcript_text = srt_service.segments_to_plain_text(cues, mode=sub_mode)
+    srt_content = srt_service.segments_to_srt(cues, mode=sub_mode)
+    os.makedirs(seg_dir, exist_ok=True)
+    srt_path = os.path.join(seg_dir, "subtitle.srt")
+    with open(srt_path, "w", encoding="utf-8") as f:
+        f.write(srt_content)
+
+    return cues, transcript_text, srt_path
+
+
+def handle_transcribe_segment(worker, config, job_id, segment_index, target_language=None, sub_mode=None):
     segment = db.get_segment(job_id, segment_index)
     if not segment:
         raise RuntimeError(f"Segment {segment_index} of job {job_id} not found")
+
+    resolved_target, resolved_mode, _ = _get_job_language_settings(
+        config, job_id, target_language=target_language, sub_mode=sub_mode
+    )
 
     seg_dir = segment_dir(config, job_id, segment_index)
     os.makedirs(seg_dir, exist_ok=True)
     audio_path = os.path.join(seg_dir, "audio.wav")
 
     try:
-        db.update_segment(job_id, segment_index, status="extracting_audio")
+        db.update_segment(job_id, segment_index, status="extracting_audio", error="")
         worker.segment_changed.emit(job_id, segment_index)
         ffmpeg_service.extract_audio_wav(segment["sourcePath"], audio_path, config.ffmpeg_path)
 
@@ -101,50 +191,88 @@ def handle_transcribe_segment(worker, config, job_id, segment_index):
         language = result["language"]
         segments = result["segments"]
 
-        # Keep the recognized source text, while using Vietnamese translations
-        # for generated subtitles and dubbing whenever the source is another
-        # language.
-        translated_segments = segments
-        if language and not re.match(r"^vi(?:[-_]|$)", language, re.IGNORECASE):
-            try:
-                translated_texts = translation_service.translate_texts_to_vietnamese(
-                    [cue["text"] for cue in segments], language
-                )
-                translated_segments = [
-                    {**cue, "translatedText": translated_texts[i]} for i, cue in enumerate(segments)
-                ]
-            except Exception as exc:
-                raise RuntimeError(
-                    f"Không dịch được phụ đề từ {language} sang tiếng Việt; chưa thể tạo voice: {exc}"
-                )
-
-        display_segments = [
-            {**cue, "text": cue.get("translatedText") or cue["text"]} for cue in translated_segments
-        ]
-        transcript_text = srt_service.segments_to_plain_text(display_segments)
-        srt_content = srt_service.segments_to_srt(display_segments)
-        srt_path = os.path.join(seg_dir, "subtitle.srt")
-        with open(srt_path, "w", encoding="utf-8") as f:
-            f.write(srt_content)
-
-        cues = []
-        for cue in translated_segments:
-            entry = {"start": cue["start"], "end": cue["end"], "text": cue.get("translatedText") or cue["text"]}
-            if cue.get("translatedText"):
-                entry["translatedText"] = cue["translatedText"]
-                entry["originalText"] = cue["text"]
-            cues.append(entry)
+        cues, transcript_text, srt_path = _build_cues_and_write_srt(
+            seg_dir, segments, language, resolved_target, resolved_mode
+        )
 
         db.update_segment(
             job_id, segment_index,
             audioPath=audio_path, language=language, transcriptText=transcript_text,
+            editedText=None,
             transcriptCues=json.dumps(cues, ensure_ascii=False), srtPath=srt_path, status="transcribed",
+            error="",
         )
         worker.segment_changed.emit(job_id, segment_index)
     except Exception as exc:
         db.update_segment(job_id, segment_index, status="failed", error=str(exc))
         worker.segment_changed.emit(job_id, segment_index)
         raise
+
+
+def handle_retranslate_segment(worker, config, job_id, segment_index, target_language=None, sub_mode=None):
+    """Re-translates an already-transcribed segment into `target_language` and
+    updates its SRT/transcript in `sub_mode` without re-running Whisper.
+    """
+    segment = db.get_segment(job_id, segment_index)
+    if not segment:
+        return
+    raw_cues = _read_transcript_cues(segment)
+    if not raw_cues:
+        return
+
+    resolved_target, resolved_mode, _ = _get_job_language_settings(
+        config, job_id, target_language=target_language, sub_mode=sub_mode
+    )
+    seg_dir = segment_dir(config, job_id, segment_index)
+    source_language = segment.get("language") or "en"
+
+    cues, transcript_text, srt_path = _build_cues_and_write_srt(
+        seg_dir, raw_cues, source_language, resolved_target, resolved_mode
+    )
+    new_status = segment.get("status") or "transcribed"
+    if new_status == "tts_done":
+        # Text language changed, mark ready to re-synthesize voice if desired
+        new_status = "transcribed"
+    db.update_segment(
+        job_id, segment_index,
+        transcriptText=transcript_text,
+        editedText=None,
+        transcriptCues=json.dumps(cues, ensure_ascii=False),
+        srtPath=srt_path,
+        status=new_status,
+        error="",
+    )
+    worker.segment_changed.emit(job_id, segment_index)
+
+
+def handle_retranslate_project(worker, config, project_id, target_language, sub_mode="target"):
+    """Re-translates all transcribed segments of a video project or audio job
+    to `target_language` and refreshes all SRT files according to `sub_mode`.
+    """
+    db.update_job(project_id, targetLanguage=target_language, subMode=sub_mode, error="")
+    worker.job_changed.emit(project_id)
+
+    job = db.get_job(project_id)
+    if not job:
+        return
+
+    if job.get("type") == "video":
+        for clip in db.list_clips(project_id):
+            for seg in db.get_all_segments(clip["id"]):
+                if seg.get("transcriptCues"):
+                    handle_retranslate_segment(
+                        worker, config, clip["id"], seg["index"],
+                        target_language=target_language, sub_mode=sub_mode,
+                    )
+    else:
+        for seg in db.get_all_segments(project_id):
+            if seg.get("transcriptCues"):
+                handle_retranslate_segment(
+                    worker, config, project_id, seg["index"],
+                    target_language=target_language, sub_mode=sub_mode,
+                )
+
+    worker.job_changed.emit(project_id)
 
 
 # --- text-to-speech -----------------------------------------------------------
@@ -162,7 +290,7 @@ def _read_transcript_cues(segment):
         for cue in cues:
             start = cue.get("start")
             end = cue.get("end")
-            text = str(cue.get("text") or "").strip()
+            text = str(cue.get("text") or cue.get("originalText") or "").strip()
             if start is None or end is None or not text:
                 continue
             if not (start >= 0 and end > start):
@@ -178,14 +306,84 @@ def _read_transcript_cues(segment):
         return []
 
 
-def _synthesize_chunk_once_vieneu(config, text, voice_id, dest_path):
-    """Local, offline synthesis via the `vieneu` package — no network, no
-    per-character cost. `voice_id` is a preset voice name (e.g. "Hải Đăng")
-    or the name of a voice previously cloned via local_tts_service.clone_voice.
+def _apply_user_edited_text_to_cues(cues, edited_text):
+    """If the user edited the transcript text box in the UI, sync those edits
+    back into the cues so TTS speaks the edited words.
     """
-    audio = local_tts_service.synthesize(text, voice=voice_id)
+    if not edited_text or not edited_text.strip() or not cues:
+        return cues
+    cleaned = edited_text.strip()
+    lines = [ln.strip() for ln in cleaned.splitlines() if ln.strip()]
+    if len(lines) == len(cues):
+        return [{**cue, "text": lines[i], "translatedText": lines[i]} for i, cue in enumerate(cues)]
+    if len(cues) == 1:
+        return [{**cues[0], "text": cleaned, "translatedText": cleaned}]
+    return cues
+
+
+def _prepare_cues_for_voice(cues, segment_source_lang, target_language, voice_id):
+    """Ensures the text spoken by `voice_id` matches the target/voice language.
+    For example, if the user selects an English voice (`multi:en-...`) or sets
+    `target_language = 'en'`, ensures the cues are in English (using `originalText`
+    if the video was originally English, or translating to English on the fly).
+    """
+    if not cues:
+        return cues, target_language or "vi"
+
+    desired_lang = target_language or "vi"
+    if local_tts_service.is_multilingual_voice(voice_id):
+        desired_lang = local_tts_service.voice_language(voice_id, default=desired_lang)
+    elif desired_lang == "original":
+        desired_lang = segment_source_lang or "vi"
+
+    # Check if cues already have translations in `desired_lang`
+    prepared = []
+    need_on_the_fly_translate = False
+    for cue in cues:
+        orig = str(cue.get("originalText") or cue.get("text") or "").strip()
+        trans = str(cue.get("translatedText") or "").strip()
+        cue_target_lang = cue.get("targetLanguage") or ("vi" if trans else segment_source_lang)
+
+        if translation_service.is_same_language(desired_lang, segment_source_lang):
+            spoken = orig
+        elif trans and translation_service.is_same_language(desired_lang, cue_target_lang):
+            spoken = trans
+        else:
+            spoken = trans or orig
+            if desired_lang != "original" and not translation_service.is_same_language(desired_lang, cue_target_lang):
+                need_on_the_fly_translate = True
+
+        prepared.append({**cue, "text": spoken})
+
+    if need_on_the_fly_translate and desired_lang != "original":
+        source_texts = [str(c.get("originalText") or c.get("text") or "").strip() for c in cues]
+        try:
+            translated_list = translation_service.translate_texts(
+                source_texts, segment_source_lang or "auto", desired_lang
+            )
+            prepared = [
+                {
+                    **c,
+                    "text": translated_list[i] if i < len(translated_list) else c["text"],
+                    "translatedText": translated_list[i] if i < len(translated_list) else c.get("translatedText", ""),
+                    "targetLanguage": desired_lang,
+                }
+                for i, c in enumerate(prepared)
+            ]
+        except Exception:
+            pass
+
+    return prepared, desired_lang
+
+
+def _synthesize_chunk_once_vieneu(config, text, voice_id, dest_path):
+    """Local/Multilingual synthesis via `local_tts_service` — supports both
+    VieNeu offline Vietnamese voices/clones and `multi:...` English/Multilingual voices.
+    """
     file_path = dest_path + ".wav"
-    local_tts_service.save_wav(audio, file_path)
+    local_tts_service.synthesize_to_file(
+        text, file_path, voice=voice_id, ffmpeg=config.ffmpeg_path
+    )
     return {"filePath": file_path, "audioUrl": "", "requestId": ""}
 
 
@@ -214,10 +412,10 @@ def _synthesize_chunk_once_resona(config, text, voice_id, language, dest_path):
 
 def _synthesize_chunk(config, text, voice_id, language, dest_path, log=None):
     """Resona sometimes rejects every take of a chunk ("quality_check_failed");
-    a fresh request usually passes. The local VieNeu backend has no such
-    per-request quality gate, so it's called once, directly.
+    a fresh request usually passes. The local VieNeu / Multilingual backend has
+    no such per-request quality gate, so it's called once, directly.
     """
-    if config.tts_backend == "vieneu":
+    if config.tts_backend == "vieneu" or local_tts_service.is_multilingual_voice(voice_id):
         return _synthesize_chunk_once_vieneu(config, text, voice_id, dest_path)
 
     attempt = 1
@@ -234,8 +432,20 @@ def _synthesize_chunk(config, text, voice_id, language, dest_path, log=None):
 
 
 def _synthesize_cue(config, cue, cue_index, voice_id, language, cue_dir):
-    text = str(cue.get("translatedText") or cue["text"]).strip()
-    cue_hash = hashlib.sha1(f"{voice_id}\n{language}\n{text}".encode("utf-8")).hexdigest()
+    text = str(cue.get("text") or cue.get("translatedText") or "").strip()
+    cue_dur = max(0.5, float(cue.get("end") or 0) - float(cue.get("start") or 0))
+    # Estimate natural reading pace vs cue window so fast-talking videos are synthesized
+    # briskly by the neural TTS engine itself instead of relying heavily on ffmpeg atempo
+    chars_per_sec = len(text) / cue_dur
+    base_speed = 1.0
+    if chars_per_sec > 18:
+        base_speed = min(1.30, round(chars_per_sec / 15.5, 2))
+    elif chars_per_sec > 14:
+        base_speed = 1.10
+
+    cue_hash = hashlib.sha1(
+        f"v3\n{voice_id}\n{language}\n{base_speed:.2f}\n{text}".encode("utf-8")
+    ).hexdigest()
     final_cue_path = os.path.join(cue_dir, f"cue-{cue_hash}.wav")
     if os.path.exists(final_cue_path):
         return {"filePath": final_cue_path, "audioUrls": []}
@@ -244,10 +454,15 @@ def _synthesize_cue(config, cue, cue_index, voice_id, language, cue_dir):
     files = []
     audio_urls = []
     for piece_index, piece in enumerate(pieces):
-        generated = _synthesize_chunk(
-            config, piece, voice_id, language,
-            os.path.join(cue_dir, f"cue-{cue_index}-{cue_hash}-part-{piece_index}"),
-        )
+        part_base = os.path.join(cue_dir, f"cue-{cue_index}-{cue_hash}-part-{piece_index}")
+        if config.tts_backend == "vieneu" or local_tts_service.is_multilingual_voice(voice_id):
+            file_path = part_base + ".wav"
+            local_tts_service.synthesize_to_file(
+                piece, file_path, voice=voice_id, speed=base_speed, ffmpeg=config.ffmpeg_path
+            )
+            generated = {"filePath": file_path, "audioUrl": "", "requestId": ""}
+        else:
+            generated = _synthesize_chunk(config, piece, voice_id, language, part_base)
         files.append(generated["filePath"])
         audio_urls.append(generated["audioUrl"])
 
@@ -262,14 +477,19 @@ def _synthesize_cue(config, cue, cue_index, voice_id, language, cue_dir):
     return {"filePath": final_cue_path, "audioUrls": audio_urls}
 
 
-def handle_tts_segment(worker, config, job_id, segment_index, voice_id, language):
+def handle_tts_segment(worker, config, job_id, segment_index, voice_id, language=None):
     segment = db.get_segment(job_id, segment_index)
     if not segment:
         raise RuntimeError(f"Segment {segment_index} of job {job_id} not found")
 
+    resolved_target, _, _ = _get_job_language_settings(config, job_id, target_language=language)
+    seg_source_lang = segment.get("language") or "vi"
+
     raw_cues = _read_transcript_cues(segment)
-    cues = [{**cue, "text": cue.get("translatedText") or cue["text"]} for cue in raw_cues]
-    tts_language = "vi" if any(cue.get("translatedText") for cue in cues) else language
+    cues, tts_language = _prepare_cues_for_voice(raw_cues, seg_source_lang, resolved_target, voice_id)
+    if segment.get("editedText"):
+        cues = _apply_user_edited_text_to_cues(cues, segment.get("editedText"))
+
     text = (
         " ".join(cue["text"].strip() for cue in cues) if cues
         else (segment.get("editedText") or segment.get("transcriptText") or "")
@@ -289,11 +509,14 @@ def handle_tts_segment(worker, config, job_id, segment_index, voice_id, language
         if segment.get("kind") == "video-chunk" and cues:
             cue_dir = os.path.join(seg_dir, "tts-cues")
             os.makedirs(cue_dir, exist_ok=True)
-            # Resona rejects any single request under 50 voice credits, and a
-            # lot of individual subtitle cues (a few words, a few seconds)
-            # fall under that on their own — group adjacent cues so every
-            # request we send clears it.
-            tts_cues = text_splitter.group_cues_for_tts(cues)
+            # For local VieNeu / Multilingual TTS, synthesize per cue (only merging
+            # tiny <12-char fragments that have <0.22s gap) so each subtitle cue
+            # aligns accurately to its timestamp without spanning across pauses!
+            if config.tts_backend == "vieneu" or local_tts_service.is_multilingual_voice(voice_id):
+                tts_cues = text_splitter.group_cues_for_tts(cues, min_credits=12, max_credits=900, max_gap_sec=0.22)
+            else:
+                tts_cues = text_splitter.group_cues_for_tts(cues, min_credits=50, max_credits=1800, max_gap_sec=0.55)
+
             cue_audio_paths = []
             audio_urls = []
 
@@ -307,7 +530,8 @@ def handle_tts_segment(worker, config, job_id, segment_index, voice_id, language
             segment_duration = max(0.0, (segment.get("endSec") or 0) - (segment.get("startSec") or 0))
             final_path = os.path.join(seg_dir, "tts-audio.wav")
             merge_service.create_timed_audio_track(
-                cue_audio_paths, tts_cues, segment_duration, final_path, config.ffmpeg_path
+                cue_audio_paths, tts_cues, segment_duration, final_path,
+                config.ffmpeg_path, config.ffprobe_path,
             )
             db.update_segment(
                 job_id, segment_index, status="tts_done", ttsAudioPath=final_path,
@@ -354,7 +578,7 @@ def handle_tts_segment(worker, config, job_id, segment_index, voice_id, language
         raise
 
 
-# --- merge -----------------------------------------------------------
+# --- merge & full-project SRT -------------------------------------------------
 
 def all_segments_for_job(job):
     """Every segment belonging to a job, regardless of type: a "video"
@@ -375,6 +599,60 @@ def project_segments_in_order(project_id):
         for seg in db.get_all_segments(clip["id"]):
             flattened.append({**seg, "clipId": clip["id"], "clipName": clip.get("originalFilename")})
     return flattened
+
+
+def build_project_srt(config, project_id, mode=None, target_language=None):
+    """Builds the combined SRT string across all segments in `project_id`.
+    Supports `mode` = 'target' | 'bilingual' | 'original', and optional on-the-fly
+    translation if `target_language` is specified and differs from existing cues.
+    """
+    job = db.get_job(project_id) or {}
+    resolved_mode = mode or job.get("subMode") or getattr(config, "sub_mode", "target") or "target"
+    resolved_target = target_language or job.get("targetLanguage") or getattr(config, "target_language", "vi") or "vi"
+
+    segments = project_segments_in_order(project_id) if job.get("type") == "video" else db.get_all_segments(project_id)
+    parts = []
+    offset_seconds = 0.0
+
+    for segment in segments:
+        cues = _read_transcript_cues(segment)
+        if cues:
+            seg_lang = segment.get("language") or "en"
+            # If user requested a specific target language for export that isn't cached yet
+            if (
+                target_language
+                and target_language != "original"
+                and not translation_service.is_same_language(seg_lang, resolved_target)
+            ):
+                needs_tx = any(
+                    not c.get("translatedText")
+                    or not translation_service.is_same_language(c.get("targetLanguage") or "vi", resolved_target)
+                    for c in cues
+                )
+                if needs_tx:
+                    orig_texts = [str(c.get("originalText") or c.get("text") or "").strip() for c in cues]
+                    tx_texts = translation_service.translate_texts(orig_texts, seg_lang, resolved_target)
+                    cues = [
+                        {
+                            **c,
+                            "text": tx_texts[i] if i < len(tx_texts) else c["text"],
+                            "translatedText": tx_texts[i] if i < len(tx_texts) else c.get("translatedText", ""),
+                            "targetLanguage": resolved_target,
+                        }
+                        for i, c in enumerate(cues)
+                    ]
+            srt_content = srt_service.segments_to_srt(cues, mode=resolved_mode)
+            parts.append({"content": srt_content, "offsetSeconds": offset_seconds})
+        elif segment.get("srtPath") and os.path.exists(segment["srtPath"]):
+            with open(segment["srtPath"], "r", encoding="utf-8") as f:
+                parts.append({"content": f.read(), "offsetSeconds": offset_seconds})
+
+        if segment.get("sourcePath") and os.path.exists(segment["sourcePath"]):
+            offset_seconds += ffmpeg_service.get_duration_seconds(segment["sourcePath"], config.ffprobe_path)
+        else:
+            offset_seconds += max(0.0, (segment.get("endSec") or 0) - (segment.get("startSec") or 0))
+
+    return srt_service.combine_srt_files(parts)
 
 
 def handle_merge_project(worker, config, project_id, music_path):
@@ -398,7 +676,8 @@ def handle_merge_project(worker, config, project_id, music_path):
         db.update_job(project_id, finalVideoStatus="processing", error="")
         worker.job_changed.emit(project_id)
 
-        dubbed_dir = os.path.join(job_output_dir(config, project_id), "dubbed")
+        out_root = job_output_dir(config, project_id)
+        dubbed_dir = os.path.join(out_root, "dubbed")
         dubbed_paths = []
         # one segment at a time, in timeline order — ffmpeg re-encoding is
         # CPU heavy, avoid overloading the box. Index by position in the
@@ -409,18 +688,42 @@ def handle_merge_project(worker, config, project_id, music_path):
             merge_service.mux_video_with_voice(seg["sourcePath"], seg["ttsAudioPath"], out_path, config.ffmpeg_path)
             dubbed_paths.append(out_path)
 
-        concatenated_path = os.path.join(job_output_dir(config, project_id), "final-dubbed-base.mp4")
+        concatenated_path = os.path.join(out_root, "final-dubbed-base.mp4")
         merge_service.concat_videos(dubbed_paths, concatenated_path, config.ffmpeg_path)
 
-        final_path = os.path.join(job_output_dir(config, project_id), "final-dubbed.mp4")
+        with_music_path = os.path.join(out_root, "final-dubbed-music.mp4")
         if music_path:
-            merge_service.add_background_music(concatenated_path, music_path, final_path, config.ffmpeg_path)
+            merge_service.add_background_music(concatenated_path, music_path, with_music_path, config.ffmpeg_path)
             try:
                 os.unlink(concatenated_path)
             except OSError:
                 pass
+            current_video_path = with_music_path
         else:
-            shutil.move(concatenated_path, final_path)
+            current_video_path = concatenated_path
+
+        job = db.get_job(project_id) or {}
+        final_path = os.path.join(out_root, "final-dubbed.mp4")
+
+        # Always save the combined full-project SRT alongside final-dubbed.mp4
+        sub_mode = job.get("subMode") or getattr(config, "sub_mode", "target") or "target"
+        full_srt_content = build_project_srt(config, project_id, mode=sub_mode)
+        full_srt_path = os.path.join(out_root, "final-dubbed.srt")
+        if full_srt_content.strip():
+            with open(full_srt_path, "w", encoding="utf-8") as f:
+                f.write(full_srt_content)
+
+        if job.get("burnSubtitles") and full_srt_content.strip():
+            merge_service.burn_subtitles_into_video(
+                current_video_path, full_srt_path, final_path, config.ffmpeg_path
+            )
+            if current_video_path != final_path and os.path.exists(current_video_path):
+                try:
+                    os.unlink(current_video_path)
+                except OSError:
+                    pass
+        else:
+            shutil.move(current_video_path, final_path)
 
         db.update_job(project_id, finalVideoStatus="done", finalVideoPath=final_path)
         worker.job_changed.emit(project_id)
@@ -432,14 +735,20 @@ def handle_merge_project(worker, config, project_id, music_path):
 
 # --- "Bắt đầu" — run the whole project end to end -----------------------------------------------------
 
-def handle_start_project(worker, config, project_id, voice_id, language="vi"):
+def handle_start_project(worker, config, project_id, voice_id, language=None):
     """Cut every clip, transcribe every segment, generate voice for every
     segment with `voice_id`, then merge — all in one go. Runs synchronously,
-    step by step, directly on the worker thread: this task IS the single
-    worker thread's current job, so it cannot `worker.submit(...)` further
-    steps and then wait for them (nothing else would ever run to complete
-    them — the queue only has the one thread this task is occupying).
+    step by step, directly on the worker thread.
     """
+    resolved_target, resolved_mode, _ = _get_job_language_settings(
+        config, project_id, target_language=language
+    )
+    if local_tts_service.is_multilingual_voice(voice_id) and resolved_target == "vi":
+        v_lang = local_tts_service.voice_language(voice_id, default=resolved_target)
+        if v_lang != "vi":
+            resolved_target = v_lang
+            db.update_job(project_id, targetLanguage=resolved_target)
+
     db.update_job(project_id, stage="cutting", error="")
     worker.job_changed.emit(project_id)
 
@@ -465,9 +774,20 @@ def handle_start_project(worker, config, project_id, voice_id, language="vi"):
     for clip in db.list_clips(project_id):
         for seg in db.get_all_segments(clip["id"]):
             if seg.get("status") in ("transcribed", "tts_queued", "tts_processing", "tts_done"):
+                # Ensure already-transcribed segments are translated to `resolved_target`
+                try:
+                    handle_retranslate_segment(
+                        worker, config, clip["id"], seg["index"],
+                        target_language=resolved_target, sub_mode=resolved_mode,
+                    )
+                except Exception:
+                    had_error = True
                 continue
             try:
-                handle_transcribe_segment(worker, config, clip["id"], seg["index"])
+                handle_transcribe_segment(
+                    worker, config, clip["id"], seg["index"],
+                    target_language=resolved_target, sub_mode=resolved_mode,
+                )
             except Exception:
                 had_error = True
 
@@ -476,12 +796,10 @@ def handle_start_project(worker, config, project_id, voice_id, language="vi"):
 
     for clip in db.list_clips(project_id):
         for seg in db.get_all_segments(clip["id"]):
-            if seg.get("status") == "tts_done":
-                continue
-            if seg.get("status") not in ("transcribed", "tts_failed"):
+            if seg.get("status") not in ("transcribed", "tts_failed", "tts_done"):
                 continue  # couldn't transcribe this one — nothing to send to TTS
             try:
-                handle_tts_segment(worker, config, clip["id"], seg["index"], voice_id, language)
+                handle_tts_segment(worker, config, clip["id"], seg["index"], voice_id, resolved_target)
             except Exception:
                 had_error = True
 

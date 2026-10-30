@@ -1,0 +1,37 @@
+services:
+  redis:
+    image: redis:7-alpine
+    container_name: kingvoice-redis
+    restart: unless-stopped
+    command: ["redis-server", "--appendonly", "yes"]
+    volumes:
+      - ./redis_data:/data
+
+  kingvoice-backend:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: kingvoice-backend
+    restart: unless-stopped
+    depends_on:
+      - redis
+    ports:
+      - "${PORT:-8686}:8686"
+    environment:
+      - PORT=8686
+      - REDIS_URL=redis://redis:6379/0
+      - KINGVOICE_RETENTION_HOURS=${KINGVOICE_RETENTION_HOURS:-2}
+      - MAXVOICE_DATA_DIR=/data
+      - MAXVOICE_STORAGE_DIR=/data/storage
+      - MAXVOICE_WHISPER_MODEL=${MAXVOICE_WHISPER_MODEL:-small}
+      - MAXVOICE_WHISPER_DEVICE=${MAXVOICE_WHISPER_DEVICE:-cpu}
+      - MAXVOICE_WHISPER_COMPUTE_TYPE=${MAXVOICE_WHISPER_COMPUTE_TYPE:-int8}
+      - MAXVOICE_TTS_BACKEND=${MAXVOICE_TTS_BACKEND:-vieneu}
+      - MAXVOICE_SEGMENT_SECONDS=${MAXVOICE_SEGMENT_SECONDS:-60}
+      - MAXVOICE_WORKER_THREADS=${MAXVOICE_WORKER_THREADS:-2}
+      - RESONA_API_KEY=${RESONA_API_KEY:-}
+    volumes:
+      # Lưu trữ SQLite DB, video upload, file xuất MP4/SRT và giọng nhân bản
+      - ./data:/data
+      # Cache model Faster-Whisper & VieNeu để không phải tải lại khi restart container
+      - ./hf_cache:/root/.cache/huggingface

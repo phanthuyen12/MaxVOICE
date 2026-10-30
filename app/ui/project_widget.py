@@ -5,9 +5,12 @@ import uuid
 
 from PyQt6.QtCore import Qt
 from PyQt6.QtWidgets import (
+    QCheckBox,
+    QComboBox,
     QFileDialog,
     QFrame,
     QHBoxLayout,
+    QInputDialog,
     QLabel,
     QMessageBox,
     QPlainTextEdit,
@@ -20,7 +23,7 @@ from PyQt6.QtWidgets import (
 from .. import db
 from ..paths import job_output_dir, job_upload_dir, music_dir
 from ..pipeline import tasks
-from ..services import ffmpeg_service, srt_service
+from ..services import ffmpeg_service, local_tts_service, srt_service, translation_service
 from .progress_dialog import ProgressOverviewDialog
 from .status_meta import PROJECT_STAGE_LABEL, derive_overall_status
 from .video_preview_widget import VideoPreviewWidget
@@ -94,7 +97,7 @@ class SegmentCardWidget(QFrame):
         self.style().unpolish(self)
         self.style().polish(self)
         self.badge.set_status(segment.get("status"))
-        self.lang_label.setText(f"Ngôn ngữ: {segment.get('language') or '?'}" if segment.get("language") else "")
+        self.lang_label.setText(f"Ngôn ngữ gốc: {segment.get('language') or '?'}" if segment.get("language") else "")
         progress = segment.get("ttsProgress")
         self.progress_label.setText(f"Đang tạo giọng: {progress}" if progress else "")
 
@@ -104,13 +107,14 @@ class SegmentCardWidget(QFrame):
                 self.text_edit.setPlainText(text)
 
         status = segment.get("status")
-        self.retry_button.setEnabled(status == "failed")
+        self.retry_button.setEnabled(status in ("failed", "transcribed", "tts_done", "tts_failed"))
         self.voice_button.setEnabled(status in READY_FOR_TTS_STATUSES and status not in ("tts_queued", "tts_processing"))
         self.listen_button.setEnabled(bool(segment.get("ttsAudioPath")) and os.path.exists(segment.get("ttsAudioPath") or ""))
         self.error_label.setText(segment.get("error") or "")
 
     def _save_text(self):
-        db.update_segment(self.clip_id, self.index, editedText=self.text_edit.toPlainText())
+        new_text = self.text_edit.toPlainText()
+        db.update_segment(self.clip_id, self.index, editedText=new_text, transcriptText=new_text)
         QMessageBox.information(self, "Đã lưu", "Đã lưu transcript cho đoạn này")
 
     def _retry(self):
@@ -165,9 +169,9 @@ class ClipHeaderWidget(QFrame):
 
 class ProjectWidget(QWidget):
     """CapCut-ish project view: real video preview, a clip timeline (a
-    project can hold several video files, cut/dubbed/merged in order), and a
-    single "Bắt đầu" button that runs cut → transcribe → voice → merge for
-    every clip automatically once a voice is picked.
+    project can hold several video files, cut/dubbed/merged in order),
+    multilingual subtitle/SRT controls (Vietnamese, English, Bilingual, etc.),
+    and a single "Bắt đầu" button that runs cut → transcribe → voice → merge.
     """
 
     def __init__(self, config, worker, project_id, notify=None, parent=None):
@@ -178,6 +182,7 @@ class ProjectWidget(QWidget):
         self.notify = notify or (lambda message, ms=4000: None)
         self.clip_headers = {}
         self.cards = {}
+        self._updating_controls = False
 
         layout = QVBoxLayout(self)
 
@@ -204,6 +209,7 @@ class ProjectWidget(QWidget):
         self.preview = VideoPreviewWidget()
         layout.addWidget(self.preview)
 
+        # Toolbar 1: Video input, Voice selection, Auto Start
         toolbar = QHBoxLayout()
         toolbar.setSpacing(8)
         add_clip_button = QPushButton("+ Thêm video")
@@ -211,7 +217,7 @@ class ProjectWidget(QWidget):
         add_clip_button.clicked.connect(self.add_clips)
         self.voice_label = QLabel("Giọng: chưa chọn")
         self.voice_label.setStyleSheet("color: #a0a0a0;")
-        choose_voice_button = QPushButton("Chọn giọng")
+        choose_voice_button = QPushButton("Chọn giọng (Việt / Anh / Đa ngôn ngữ)")
         choose_voice_button.clicked.connect(self.choose_default_voice)
         self.start_button = QPushButton("Bắt đầu (tự động)")
         self.start_button.setProperty("accent", True)
@@ -219,17 +225,45 @@ class ProjectWidget(QWidget):
         progress_button = QPushButton("Xem tiến độ")
         progress_button.clicked.connect(self.show_progress_dialog)
         toolbar.addWidget(add_clip_button)
-        toolbar.addSpacing(12)
+        toolbar.addSpacing(10)
         toolbar.addWidget(self.voice_label)
         toolbar.addWidget(choose_voice_button)
-        toolbar.addSpacing(12)
+        toolbar.addSpacing(10)
         toolbar.addWidget(self.start_button)
         toolbar.addWidget(progress_button)
         toolbar.addStretch(1)
         layout.addLayout(toolbar)
 
+        # Toolbar 2: Multilingual Subtitles & SRT settings
+        sub_toolbar = QHBoxLayout()
+        sub_toolbar.setSpacing(8)
+        sub_toolbar.addWidget(QLabel("Ngôn ngữ Sub & Voice:"))
+        self.target_lang_combo = QComboBox()
+        for label, code in translation_service.TARGET_LANGUAGES:
+            self.target_lang_combo.addItem(label, code)
+        self.target_lang_combo.currentIndexChanged.connect(self._on_language_settings_changed)
+        sub_toolbar.addWidget(self.target_lang_combo)
+
+        sub_toolbar.addWidget(QLabel("Chế độ SRT/Sub:"))
+        self.sub_mode_combo = QComboBox()
+        for label, mode_code in translation_service.SUBTITLE_MODES:
+            self.sub_mode_combo.addItem(label, mode_code)
+        self.sub_mode_combo.currentIndexChanged.connect(self._on_language_settings_changed)
+        sub_toolbar.addWidget(self.sub_mode_combo)
+
+        self.burn_sub_checkbox = QCheckBox("Ghi phụ đề (Sub) vào video")
+        self.burn_sub_checkbox.toggled.connect(self._on_burn_sub_toggled)
+        sub_toolbar.addWidget(self.burn_sub_checkbox)
+
+        self.retranslate_button = QPushButton("Dịch / Cập nhật Sub")
+        self.retranslate_button.clicked.connect(self.retranslate_project_subtitles)
+        sub_toolbar.addWidget(self.retranslate_button)
+        sub_toolbar.addStretch(1)
+        layout.addLayout(sub_toolbar)
+
         self._progress_dialog = None
 
+        # Toolbar 3: Background music, Merge, Download Multilingual SRT
         toolbar2 = QHBoxLayout()
         toolbar2.setSpacing(8)
         self.music_label = QLabel("Nhạc nền: chưa có")
@@ -243,7 +277,7 @@ class ProjectWidget(QWidget):
         self.merge_button = QPushButton("Ghép lại video hoàn chỉnh")
         self.merge_button.setProperty("accent", True)
         self.merge_button.clicked.connect(self.merge_project)
-        self.srt_button = QPushButton("Tải SRT toàn project")
+        self.srt_button = QPushButton("Tải SRT đa ngôn ngữ...")
         self.srt_button.clicked.connect(self.download_full_srt)
         toolbar2.addWidget(self.music_label)
         toolbar2.addWidget(music_button)
@@ -288,6 +322,23 @@ class ProjectWidget(QWidget):
         clips = db.list_clips(self.project_id)
         all_segments = tasks.project_segments_in_order(self.project_id)
 
+        self._updating_controls = True
+        try:
+            target_lang = job.get("targetLanguage") or getattr(self.config, "target_language", "vi") or "vi"
+            lang_idx = self.target_lang_combo.findData(target_lang)
+            if lang_idx >= 0:
+                self.target_lang_combo.setCurrentIndex(lang_idx)
+
+            sub_mode = job.get("subMode") or getattr(self.config, "sub_mode", "target") or "target"
+            mode_idx = self.sub_mode_combo.findData(sub_mode)
+            if mode_idx >= 0:
+                self.sub_mode_combo.setCurrentIndex(mode_idx)
+
+            burn_sub = bool(job.get("burnSubtitles"))
+            self.burn_sub_checkbox.setChecked(burn_sub)
+        finally:
+            self._updating_controls = False
+
         self.title_label.setText(job.get("originalFilename") or "Project")
         self.job_badge.set_status(derive_overall_status(all_segments), kind="job")
         self.stage_label.setText(PROJECT_STAGE_LABEL.get(job.get("stage"), ""))
@@ -321,6 +372,37 @@ class ProjectWidget(QWidget):
         self.breadcrumb.set_active_step(active_step)
 
         self._rebuild_timeline(clips)
+
+    def _on_language_settings_changed(self):
+        if self._updating_controls:
+            return
+        target_lang = self.target_lang_combo.currentData() or "vi"
+        sub_mode = self.sub_mode_combo.currentData() or "target"
+        db.update_job(self.project_id, targetLanguage=target_lang, subMode=sub_mode)
+        self.config.target_language = target_lang
+        self.config.sub_mode = sub_mode
+
+    def _on_burn_sub_toggled(self, checked):
+        if self._updating_controls:
+            return
+        db.update_job(self.project_id, burnSubtitles=1 if checked else 0)
+        self.config.burn_subtitles = bool(checked)
+
+    def retranslate_project_subtitles(self):
+        segments = tasks.project_segments_in_order(self.project_id)
+        if not segments or not any(s.get("transcriptCues") for s in segments):
+            QMessageBox.information(
+                self, "Chưa có phụ đề", "Hãy thêm video và đợi nhận diện xong trước khi dịch/cập nhật phụ đề."
+            )
+            return
+        target_lang = self.target_lang_combo.currentData() or "vi"
+        sub_mode = self.sub_mode_combo.currentData() or "target"
+        db.update_job(self.project_id, targetLanguage=target_lang, subMode=sub_mode)
+        self.worker.submit(
+            tasks.handle_retranslate_project, self.config, self.project_id, target_lang, sub_mode
+        )
+        lang_name = translation_service.language_label(target_lang)
+        self.notify(f"Đang dịch & cập nhật phụ đề sang {lang_name} ({self.sub_mode_combo.currentText()})...")
 
     def _rebuild_timeline(self, clips):
         seen_clip_ids = set()
@@ -426,8 +508,9 @@ class ProjectWidget(QWidget):
     def _clip_cues_in_clip_timeline(self, clip_id):
         """Every segment's SRT cues, offset by the segment's startSec so the
         timestamps line up with the ORIGINAL (uncut) clip file being
-        previewed — same offsetting trick as the full-project SRT download.
+        previewed — formatted according to the selected `subMode`.
         """
+        sub_mode = self.sub_mode_combo.currentData() or "target"
         cues = []
         for segment in db.get_all_segments(clip_id):
             raw = segment.get("transcriptCues")
@@ -437,8 +520,9 @@ class ProjectWidget(QWidget):
             try:
                 for cue in json.loads(raw):
                     cues.append({
-                        "start": offset + cue["start"], "end": offset + cue["end"],
-                        "text": cue.get("text", ""),
+                        "start": offset + cue["start"],
+                        "end": offset + cue["end"],
+                        "text": srt_service.format_cue_text(cue, mode=sub_mode),
                     })
             except (ValueError, TypeError, KeyError):
                 continue
@@ -447,11 +531,17 @@ class ProjectWidget(QWidget):
     # -- voice / start -----------------------------------------------------
 
     def choose_default_voice(self):
-        dialog = VoicePickerDialog(self.config, self)
+        preferred_lang = self.target_lang_combo.currentData()
+        dialog = VoicePickerDialog(self.config, self, preferred_lang=preferred_lang)
         if dialog.exec() != dialog.DialogCode.Accepted or not dialog.selected_voice:
             return None
         voice = dialog.selected_voice
-        db.update_job(self.project_id, defaultVoiceId=voice["voice_id"], defaultVoiceName=voice["name"])
+        updates = {"defaultVoiceId": voice["voice_id"], "defaultVoiceName": voice["name"]}
+        # Automatically align targetLanguage if user picked an English/Multilingual voice
+        voice_lang = voice.get("lang")
+        if local_tts_service.is_multilingual_voice(voice["voice_id"]) and voice_lang:
+            updates["targetLanguage"] = voice_lang
+        db.update_job(self.project_id, **updates)
         self.refresh()
         self.notify(f"Đã chọn giọng: {voice['name']}")
         return voice
@@ -467,11 +557,14 @@ class ProjectWidget(QWidget):
             if not voice:
                 return
             voice_id = voice["voice_id"]
-        self.worker.submit(tasks.handle_start_project, self.config, self.project_id, voice_id, "vi")
+
+        target_lang = self.target_lang_combo.currentData() or job.get("targetLanguage") or "vi"
+        sub_mode = self.sub_mode_combo.currentData() or job.get("subMode") or "target"
+        db.update_job(self.project_id, targetLanguage=target_lang, subMode=sub_mode)
+
+        self.worker.submit(tasks.handle_start_project, self.config, self.project_id, voice_id, target_lang)
         self.refresh()
-        self.notify("Đã bắt đầu xử lý tự động: cắt video → nhận diện → tạo giọng nói → ghép video")
-        # Always a fresh dialog here, even if one from a previous run still
-        # exists — that one's refresh timer self-stopped once it finished.
+        self.notify("Đã bắt đầu xử lý tự động: cắt video → nhận diện & dịch → tạo giọng nói → ghép video")
         self._progress_dialog = ProgressOverviewDialog(self.config, self.worker, self.project_id, self)
         self._progress_dialog.show()
 
@@ -486,12 +579,16 @@ class ProjectWidget(QWidget):
     # -- per-segment actions -----------------------------------------------------
 
     def retry_segment(self, clip_id, index):
+        target_lang = self.target_lang_combo.currentData() or "vi"
+        sub_mode = self.sub_mode_combo.currentData() or "target"
         db.update_segment(
             clip_id, index, status="cut", error="", audioPath="", srtPath="",
-            transcriptText="", language="",
+            transcriptText="", editedText=None, language="",
         )
         self.refresh()
-        self.worker.submit(tasks.handle_transcribe_segment, self.config, clip_id, index)
+        self.worker.submit(
+            tasks.handle_transcribe_segment, self.config, clip_id, index, target_lang, sub_mode
+        )
         self.notify(f"Đang nhận diện lại đoạn {index + 1}...")
 
     def _all_segments_ready_for_tts(self):
@@ -513,14 +610,15 @@ class ProjectWidget(QWidget):
             QMessageBox.information(self, "Đang xử lý", "Đoạn này đang tạo giọng nói, vui lòng đợi")
             return
 
-        dialog = VoicePickerDialog(self.config, self)
+        preferred_lang = self.target_lang_combo.currentData() or "vi"
+        dialog = VoicePickerDialog(self.config, self, preferred_lang=preferred_lang)
         if dialog.exec() != dialog.DialogCode.Accepted or not dialog.selected_voice:
             return
         voice = dialog.selected_voice
-        language = segment.get("language") or "vi"
+        target_lang = voice.get("lang") if local_tts_service.is_multilingual_voice(voice["voice_id"]) else preferred_lang
         db.update_segment(clip_id, index, status="tts_queued", ttsVoiceId=voice["voice_id"], error="")
         self.refresh()
-        self.worker.submit(tasks.handle_tts_segment, self.config, clip_id, index, voice["voice_id"], language)
+        self.worker.submit(tasks.handle_tts_segment, self.config, clip_id, index, voice["voice_id"], target_lang)
         self.notify(f"Đã bắt đầu tạo giọng nói \"{voice['name']}\" cho đoạn {index + 1}")
 
     # -- music -----------------------------------------------------
@@ -621,16 +719,51 @@ class ProjectWidget(QWidget):
             QMessageBox.warning(self, "Chưa sẵn sàng", "Transcript của một số đoạn vẫn đang xử lý")
             return
 
-        parts = []
-        offset_seconds = 0.0
-        for segment in segments:
-            with open(segment["srtPath"], "r", encoding="utf-8") as f:
-                parts.append({"content": f.read(), "offsetSeconds": offset_seconds})
-            offset_seconds += ffmpeg_service.get_duration_seconds(segment["sourcePath"], self.config.ffprobe_path)
-        combined = srt_service.combine_srt_files(parts)
+        current_target = self.target_lang_combo.currentData() or "vi"
+        current_mode = self.sub_mode_combo.currentData() or "target"
 
-        dest, _ = QFileDialog.getSaveFileName(self, "Lưu SRT", f"{self.project_id}.srt", "SubRip (*.srt)")
+        export_options = [
+            f"Theo cài đặt hiện tại ({translation_service.language_label(current_target)} — {self.sub_mode_combo.currentText()})",
+            "Song ngữ (Ngôn ngữ đích + Ngôn ngữ gốc)",
+            "Chỉ Ngôn ngữ gốc (Original)",
+            "Dịch & Xuất SRT Tiếng Việt (vi)",
+            "Dịch & Xuất SRT Tiếng Anh (en)",
+            "Dịch & Xuất SRT Tiếng Trung (zh)",
+            "Dịch & Xuất SRT Tiếng Nhật (ja)",
+            "Dịch & Xuất SRT Tiếng Hàn (ko)",
+            "Dịch & Xuất SRT Tiếng Nga (ru)",
+        ]
+        choice, ok = QInputDialog.getItem(
+            self, "Chọn định dạng / ngôn ngữ SRT",
+            "Chọn chế độ xuất file phụ đề (.srt):",
+            export_options, 0, False,
+        )
+        if not ok or not choice:
+            return
+
+        chosen_idx = export_options.index(choice)
+        if chosen_idx == 0:
+            mode, target_lang = current_mode, current_target
+        elif chosen_idx == 1:
+            mode, target_lang = "bilingual", current_target
+        elif chosen_idx == 2:
+            mode, target_lang = "original", "original"
+        else:
+            lang_map = {3: "vi", 4: "en", 5: "zh", 6: "ja", 7: "ko", 8: "ru"}
+            mode, target_lang = "target", lang_map.get(chosen_idx, current_target)
+
+        try:
+            combined = tasks.build_project_srt(
+                self.config, self.project_id, mode=mode, target_language=target_lang
+            )
+        except Exception as exc:
+            QMessageBox.critical(self, "Lỗi dịch/xuất SRT", str(exc))
+            return
+
+        suffix = f"{target_lang}-{mode}" if mode == "bilingual" else target_lang
+        default_name = f"{self.project_id}.{suffix}.srt"
+        dest, _ = QFileDialog.getSaveFileName(self, "Lưu SRT", default_name, "SubRip (*.srt)")
         if dest:
             with open(dest, "w", encoding="utf-8") as f:
                 f.write(combined)
-            self.notify(f"Đã lưu SRT vào {dest}")
+            self.notify(f"Đã lưu SRT ({suffix}) vào {dest}")

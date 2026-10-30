@@ -1,0 +1,2826 @@
+{
+  "openapi": "3.1.0",
+  "info": {
+    "title": "KingVoice — AI Video Dubbing & Task Manager API",
+    "description": "KingVoice containerized backend & web task manager for automatic video cutting, Faster-Whisper speech recognition, multilingual translation, neural TTS dubbing (84+ voices across Vietnamese, Russian, English, Japanese, Korean, Chinese...), and video merging.",
+    "version": "1.0.0"
+  },
+  "paths": {
+    "/api/v1/admin/keys": {
+      "get": {
+        "tags": [
+          "Admin & API Keys"
+        ],
+        "summary": "Admin List Api Keys",
+        "operationId": "admin_list_api_keys_api_v1_admin_keys_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "tags": [
+          "Admin & API Keys"
+        ],
+        "summary": "Admin Create Api Key",
+        "operationId": "admin_create_api_key_api_v1_admin_keys_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateApiKeyRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/admin/keys/{key_id}": {
+      "patch": {
+        "tags": [
+          "Admin & API Keys"
+        ],
+        "summary": "Admin Update Api Key",
+        "operationId": "admin_update_api_key_api_v1_admin_keys__key_id__patch",
+        "parameters": [
+          {
+            "name": "key_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Key Id"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateApiKeyRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      },
+      "delete": {
+        "tags": [
+          "Admin & API Keys"
+        ],
+        "summary": "Admin Delete Api Key",
+        "operationId": "admin_delete_api_key_api_v1_admin_keys__key_id__delete",
+        "parameters": [
+          {
+            "name": "key_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Key Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/admin/settings": {
+      "post": {
+        "tags": [
+          "Admin & API Keys"
+        ],
+        "summary": "Admin Update Settings",
+        "operationId": "admin_update_settings_api_v1_admin_settings_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AdminSettingsRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/admin/cleanup": {
+      "post": {
+        "tags": [
+          "Admin & API Keys"
+        ],
+        "summary": "Admin Trigger Cleanup",
+        "operationId": "admin_trigger_cleanup_api_v1_admin_cleanup_post",
+        "security": [
+          {
+            "APIKeyHeader": []
+          },
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "retention_hours",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "number"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "Delete files & jobs older than this many hours (default: config.file_retention_hours = 2.0)",
+              "title": "Retention Hours"
+            },
+            "description": "Delete files & jobs older than this many hours (default: config.file_retention_hours = 2.0)"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/health": {
+      "get": {
+        "tags": [
+          "System"
+        ],
+        "summary": "Health Check",
+        "operationId": "health_check_health_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/languages": {
+      "get": {
+        "tags": [
+          "Discovery",
+          "Get Voice"
+        ],
+        "summary": "List Languages",
+        "operationId": "list_languages_api_v1_languages_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "APIKeyHeader": []
+          },
+          {
+            "HTTPBearer": []
+          }
+        ]
+      }
+    },
+    "/api/v1/countries": {
+      "get": {
+        "tags": [
+          "Get Voice",
+          "Voices"
+        ],
+        "summary": "Lấy danh sách quốc gia có giọng đọc AI (Hỗ trợ bộ lọc ngôn ngữ & giới tính)",
+        "description": "Trả về danh sách các quốc gia (`VN`, `US`, `GB`, `CN`, `TW`, `JP`, `KR`, `RU`, `FR`, `DE`, `ES`, `TH`...)\nkèm danh sách mã ngôn ngữ (`languages`), giới tính (`genders`) và tổng số giọng đọc (`voice_count`) của từng quốc gia.",
+        "operationId": "get_all_countries_api_v1_countries_get",
+        "security": [
+          {
+            "APIKeyHeader": []
+          },
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "lang",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "Filter countries by language code: vi, en, ru, ja, ko, zh, fr, de, es, th (or 'all')",
+              "title": "Lang"
+            },
+            "description": "Filter countries by language code: vi, en, ru, ja, ko, zh, fr, de, es, th (or 'all')"
+          },
+          {
+            "name": "gender",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "Filter countries by available voice gender: male or female (or 'all')",
+              "title": "Gender"
+            },
+            "description": "Filter countries by available voice gender: male or female (or 'all')"
+          },
+          {
+            "name": "search",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "Search country by ISO code (VN, US, GB, RU...) or country name",
+              "title": "Search"
+            },
+            "description": "Search country by ISO code (VN, US, GB, RU...) or country name"
+          },
+          {
+            "name": "include_vieneu_presets",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "boolean",
+              "description": "Count 25 offline VieNeu Vietnamese voices under Vietnam (VN)",
+              "default": true,
+              "title": "Include Vieneu Presets"
+            },
+            "description": "Count 25 offline VieNeu Vietnamese voices under Vietnam (VN)"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/CountryItem"
+                  },
+                  "title": "Response Get All Countries Api V1 Countries Get"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/voices/filters": {
+      "get": {
+        "tags": [
+          "Get Voice",
+          "Voices"
+        ],
+        "summary": "Lấy toàn bộ tùy chọn Bộ lọc Giọng đọc (Quốc gia, Ngôn ngữ, Giới tính, Loại giọng)",
+        "description": "Endpoint phục vụ UI / Client khởi tạo các dropdown bộ lọc trong 1 lần gọi:\ntrả về danh sách `countries`, `languages`, `genders`, và `voice_types` kèm số lượng giọng đọc tương ứng.",
+        "operationId": "get_voice_filter_options_api_v1_voices_filters_get",
+        "security": [
+          {
+            "APIKeyHeader": []
+          },
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "include_vieneu_presets",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "boolean",
+              "description": "Include 25 offline VieNeu Vietnamese voices in filter counts",
+              "default": true,
+              "title": "Include Vieneu Presets"
+            },
+            "description": "Include 25 offline VieNeu Vietnamese voices in filter counts"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/VoiceFiltersResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/voices": {
+      "get": {
+        "tags": [
+          "Voices",
+          "Get Voice"
+        ],
+        "summary": "Danh sách & Bộ lọc Giọng đọc AI (Lọc theo Quốc gia, Ngôn ngữ, Giới tính, Loại giọng, Từ khóa)",
+        "description": "Lấy danh sách giọng đọc AI hỗ trợ bộ lọc kết hợp:\n- `country`: Mã quốc gia 2 ký tự (`VN`, `US`, `GB`, `CN`, `TW`, `JP`, `KR`, `RU`, `FR`, `DE`, `ES`, `TH`)\n- `lang`: Mã ngôn ngữ (`vi`, `en`, `ru`, `ja`, `ko`, `zh`, `fr`, `de`, `es`, `th`)\n- `gender`: Giới tính (`male` / `female`)\n- `type`: Loại giọng (`multilingual`, `vieneu_offline`, `cloned`)\n- `search`: Từ khóa tìm theo tên giọng, mã `voice_id`, mô tả phong cách đọc",
+        "operationId": "list_voices_api_v1_voices_get",
+        "security": [
+          {
+            "APIKeyHeader": []
+          },
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "country",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "Filter by 2-letter country code: VN, US, GB, CN, TW, JP, KR, RU, FR, DE, ES, TH (or 'all')",
+              "title": "Country"
+            },
+            "description": "Filter by 2-letter country code: VN, US, GB, CN, TW, JP, KR, RU, FR, DE, ES, TH (or 'all')"
+          },
+          {
+            "name": "lang",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "Filter by language code: vi, en, ru, ja, ko, zh, fr, de, es, th (or 'all')",
+              "title": "Lang"
+            },
+            "description": "Filter by language code: vi, en, ru, ja, ko, zh, fr, de, es, th (or 'all')"
+          },
+          {
+            "name": "gender",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "Filter by gender: male, female (or 'all')",
+              "title": "Gender"
+            },
+            "description": "Filter by gender: male, female (or 'all')"
+          },
+          {
+            "name": "type",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "Filter by voice engine type: multilingual, vieneu_offline, cloned (or 'all')",
+              "title": "Type"
+            },
+            "description": "Filter by voice engine type: multilingual, vieneu_offline, cloned (or 'all')"
+          },
+          {
+            "name": "search",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "Search keyword matching voice ID, name, description/subtitle, country, or locale",
+              "title": "Search"
+            },
+            "description": "Search keyword matching voice ID, name, description/subtitle, country, or locale"
+          },
+          {
+            "name": "include_vieneu_presets",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "boolean",
+              "description": "Include 25 offline VieNeu Vietnamese voices",
+              "default": true,
+              "title": "Include Vieneu Presets"
+            },
+            "description": "Include 25 offline VieNeu Vietnamese voices"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/VoicesListResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/voices/clone": {
+      "post": {
+        "tags": [
+          "Voices"
+        ],
+        "summary": "Clone Custom Voice",
+        "operationId": "clone_custom_voice_api_v1_voices_clone_post",
+        "requestBody": {
+          "content": {
+            "multipart/form-data": {
+              "schema": {
+                "$ref": "#/components/schemas/Body_clone_custom_voice_api_v1_voices_clone_post"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "APIKeyHeader": []
+          },
+          {
+            "HTTPBearer": []
+          }
+        ]
+      }
+    },
+    "/api/v1/voices/preview": {
+      "post": {
+        "tags": [
+          "Voices"
+        ],
+        "summary": "Preview Voice",
+        "operationId": "preview_voice_api_v1_voices_preview_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/VoicePreviewRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "APIKeyHeader": []
+          },
+          {
+            "HTTPBearer": []
+          }
+        ]
+      }
+    },
+    "/api/v1/tts": {
+      "post": {
+        "tags": [
+          "Text to Speech (Voice)"
+        ],
+        "summary": "Synthesize Text To Voice Sync",
+        "description": "Truyền `text` vào -> Tạo và trả về trực tiếp file âm thanh (`.mp3` hoặc `.wav`).\nHỗ trợ tự động chia đoạn văn bản dài, tùy chọn dịch sang ngôn ngữ đích (`translate_text=true`),\nvà chọn bất kỳ giọng nào trong 84+ giọng (Việt, Nga, Anh, Nhật, Hàn, Trung...).",
+        "operationId": "synthesize_text_to_voice_sync_api_v1_tts_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/TextToSpeechRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "APIKeyHeader": []
+          },
+          {
+            "HTTPBearer": []
+          }
+        ]
+      }
+    },
+    "/api/v1/tts/jobs": {
+      "post": {
+        "tags": [
+          "Text to Speech (Voice)"
+        ],
+        "summary": "Create Tts Task Async",
+        "description": "Truyền `text` vào -> Đưa vào Hàng đợi Task KingVoice (dành cho kịch bản/văn bản dài,\ncó lưu lịch sử trên Dashboard, theo dõi tiến độ % và bắn Webhook khi tạo xong file Voice).",
+        "operationId": "create_tts_task_async_api_v1_tts_jobs_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/TextToSpeechRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "202": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "APIKeyHeader": []
+          },
+          {
+            "HTTPBearer": []
+          }
+        ]
+      }
+    },
+    "/api/v1/videos/generate": {
+      "post": {
+        "tags": [
+          "Video Pipeline"
+        ],
+        "summary": "Generate Video Oneshot",
+        "description": "One-shot endpoint for external systems:\nUploads or downloads video clip(s), creates a project, and immediately queues\nthe full end-to-end pipeline: Cut -> Transcribe -> Translate -> Neural TTS -> Merge (+ Burn Subtitles).",
+        "operationId": "generate_video_oneshot_api_v1_videos_generate_post",
+        "requestBody": {
+          "content": {
+            "multipart/form-data": {
+              "schema": {
+                "$ref": "#/components/schemas/Body_generate_video_oneshot_api_v1_videos_generate_post"
+              }
+            }
+          }
+        },
+        "responses": {
+          "202": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "APIKeyHeader": []
+          },
+          {
+            "HTTPBearer": []
+          }
+        ]
+      }
+    },
+    "/api/v1/audio/dub": {
+      "post": {
+        "tags": [
+          "Voice to Voice (Speech -> New Voice)"
+        ],
+        "summary": "Dub Audio To Voice Oneshot",
+        "description": "Tự động nhận diện giọng nói (Faster-Whisper) từ file Audio/Video đầu vào ->\nDịch sang ngôn ngữ đích -> Tạo ra file Giọng nói AI mới (`voice_id`) + file Phụ đề `.srt`.",
+        "operationId": "dub_audio_to_voice_oneshot_api_v1_audio_dub_post",
+        "requestBody": {
+          "content": {
+            "multipart/form-data": {
+              "schema": {
+                "$ref": "#/components/schemas/Body_dub_audio_to_voice_oneshot_api_v1_audio_dub_post"
+              }
+            }
+          }
+        },
+        "responses": {
+          "202": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "APIKeyHeader": []
+          },
+          {
+            "HTTPBearer": []
+          }
+        ]
+      }
+    },
+    "/api/v1/audio/transcribe": {
+      "post": {
+        "tags": [
+          "Voice to Text"
+        ],
+        "summary": "Transcribe Media Oneshot",
+        "operationId": "transcribe_media_oneshot_api_v1_audio_transcribe_post",
+        "requestBody": {
+          "content": {
+            "multipart/form-data": {
+              "schema": {
+                "$ref": "#/components/schemas/Body_transcribe_media_oneshot_api_v1_audio_transcribe_post"
+              }
+            }
+          }
+        },
+        "responses": {
+          "202": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "APIKeyHeader": []
+          },
+          {
+            "HTTPBearer": []
+          }
+        ]
+      }
+    },
+    "/api/v1/jobs": {
+      "get": {
+        "tags": [
+          "Jobs"
+        ],
+        "summary": "List All Jobs",
+        "operationId": "list_all_jobs_api_v1_jobs_get",
+        "security": [
+          {
+            "APIKeyHeader": []
+          },
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "limit",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "maximum": 200,
+              "minimum": 1,
+              "default": 50,
+              "title": "Limit"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "tags": [
+          "Jobs"
+        ],
+        "summary": "Create Project",
+        "operationId": "create_project_api_v1_jobs_post",
+        "security": [
+          {
+            "APIKeyHeader": []
+          },
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateJobRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/jobs/{job_id}": {
+      "get": {
+        "tags": [
+          "Jobs"
+        ],
+        "summary": "Get Job Status",
+        "operationId": "get_job_status_api_v1_jobs__job_id__get",
+        "security": [
+          {
+            "APIKeyHeader": []
+          },
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "job_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Job Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      },
+      "delete": {
+        "tags": [
+          "Jobs"
+        ],
+        "summary": "Delete Job Endpoint",
+        "operationId": "delete_job_endpoint_api_v1_jobs__job_id__delete",
+        "security": [
+          {
+            "APIKeyHeader": []
+          },
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "job_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Job Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/jobs/{job_id}/clips": {
+      "post": {
+        "tags": [
+          "Jobs"
+        ],
+        "summary": "Add Clips To Job",
+        "operationId": "add_clips_to_job_api_v1_jobs__job_id__clips_post",
+        "security": [
+          {
+            "APIKeyHeader": []
+          },
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "job_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Job Id"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "multipart/form-data": {
+              "schema": {
+                "$ref": "#/components/schemas/Body_add_clips_to_job_api_v1_jobs__job_id__clips_post"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/jobs/{job_id}/music": {
+      "post": {
+        "tags": [
+          "Jobs"
+        ],
+        "summary": "Set Job Music",
+        "operationId": "set_job_music_api_v1_jobs__job_id__music_post",
+        "security": [
+          {
+            "APIKeyHeader": []
+          },
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "job_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Job Id"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "multipart/form-data": {
+              "schema": {
+                "$ref": "#/components/schemas/Body_set_job_music_api_v1_jobs__job_id__music_post"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/jobs/{job_id}/start": {
+      "post": {
+        "tags": [
+          "Jobs"
+        ],
+        "summary": "Start Job Pipeline",
+        "operationId": "start_job_pipeline_api_v1_jobs__job_id__start_post",
+        "security": [
+          {
+            "APIKeyHeader": []
+          },
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "job_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Job Id"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/StartJobRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "202": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/jobs/{job_id}/retranslate": {
+      "post": {
+        "tags": [
+          "Jobs"
+        ],
+        "summary": "Retranslate Job",
+        "operationId": "retranslate_job_api_v1_jobs__job_id__retranslate_post",
+        "security": [
+          {
+            "APIKeyHeader": []
+          },
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "job_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Job Id"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RetranslateRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "202": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/jobs/{job_id}/merge": {
+      "post": {
+        "tags": [
+          "Jobs"
+        ],
+        "summary": "Merge Job Video",
+        "operationId": "merge_job_video_api_v1_jobs__job_id__merge_post",
+        "security": [
+          {
+            "APIKeyHeader": []
+          },
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "job_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Job Id"
+            }
+          },
+          {
+            "name": "burn_subtitles",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "boolean"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Burn Subtitles"
+            }
+          }
+        ],
+        "responses": {
+          "202": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/clips/{clip_id}/segments/{index}": {
+      "put": {
+        "tags": [
+          "Segments"
+        ],
+        "summary": "Update Segment Transcript",
+        "operationId": "update_segment_transcript_api_v1_clips__clip_id__segments__index__put",
+        "security": [
+          {
+            "APIKeyHeader": []
+          },
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "clip_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Clip Id"
+            }
+          },
+          {
+            "name": "index",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "title": "Index"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateSegmentRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/clips/{clip_id}/segments/{index}/tts": {
+      "post": {
+        "tags": [
+          "Segments"
+        ],
+        "summary": "Synthesize Segment Voice",
+        "operationId": "synthesize_segment_voice_api_v1_clips__clip_id__segments__index__tts_post",
+        "security": [
+          {
+            "APIKeyHeader": []
+          },
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "clip_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Clip Id"
+            }
+          },
+          {
+            "name": "index",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "title": "Index"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SegmentTTSRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "202": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/jobs/{job_id}/download/audio": {
+      "get": {
+        "tags": [
+          "Downloads"
+        ],
+        "summary": "Download Final Video Or Audio",
+        "operationId": "download_final_video_or_audio_api_v1_jobs__job_id__download_audio_get",
+        "security": [
+          {
+            "APIKeyHeader": []
+          },
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "job_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Job Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/jobs/{job_id}/download/video": {
+      "get": {
+        "tags": [
+          "Downloads"
+        ],
+        "summary": "Download Final Video Or Audio",
+        "operationId": "download_final_video_or_audio_api_v1_jobs__job_id__download_video_get",
+        "security": [
+          {
+            "APIKeyHeader": []
+          },
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "job_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Job Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/jobs/{job_id}/download/voice": {
+      "get": {
+        "tags": [
+          "Downloads"
+        ],
+        "summary": "Download Voice Only Track",
+        "description": "Tải riêng file âm thanh giọng đọc AI (`.wav` / `.mp3`) đã tạo của một Job (kể cả Job Video hoặc Audio).",
+        "operationId": "download_voice_only_track_api_v1_jobs__job_id__download_voice_get",
+        "security": [
+          {
+            "APIKeyHeader": []
+          },
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "job_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Job Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/jobs/{job_id}/download/srt": {
+      "get": {
+        "tags": [
+          "Downloads"
+        ],
+        "summary": "Download Project Srt",
+        "operationId": "download_project_srt_api_v1_jobs__job_id__download_srt_get",
+        "security": [
+          {
+            "APIKeyHeader": []
+          },
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "job_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Job Id"
+            }
+          },
+          {
+            "name": "mode",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "'target', 'bilingual', or 'original'",
+              "title": "Mode"
+            },
+            "description": "'target', 'bilingual', or 'original'"
+          },
+          {
+            "name": "target_language",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "Optional language code to translate SRT on the fly",
+              "title": "Target Language"
+            },
+            "description": "Optional language code to translate SRT on the fly"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  "components": {
+    "schemas": {
+      "AdminSettingsRequest": {
+        "properties": {
+          "require_api_key": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Require Api Key"
+          }
+        },
+        "type": "object",
+        "title": "AdminSettingsRequest"
+      },
+      "Body_add_clips_to_job_api_v1_jobs__job_id__clips_post": {
+        "properties": {
+          "files": {
+            "items": {
+              "type": "string",
+              "format": "binary"
+            },
+            "type": "array",
+            "title": "Files"
+          },
+          "auto_cut_transcribe": {
+            "type": "boolean",
+            "title": "Auto Cut Transcribe",
+            "default": true
+          }
+        },
+        "type": "object",
+        "required": [
+          "files"
+        ],
+        "title": "Body_add_clips_to_job_api_v1_jobs__job_id__clips_post"
+      },
+      "Body_clone_custom_voice_api_v1_voices_clone_post": {
+        "properties": {
+          "name": {
+            "type": "string",
+            "title": "Name",
+            "description": "Unique name for the cloned voice"
+          },
+          "description": {
+            "type": "string",
+            "title": "Description",
+            "default": ""
+          },
+          "gender": {
+            "type": "string",
+            "title": "Gender",
+            "default": ""
+          },
+          "file": {
+            "type": "string",
+            "format": "binary",
+            "title": "File",
+            "description": "3-8 second clean reference audio sample (.wav/.mp3)"
+          }
+        },
+        "type": "object",
+        "required": [
+          "name",
+          "file"
+        ],
+        "title": "Body_clone_custom_voice_api_v1_voices_clone_post"
+      },
+      "Body_dub_audio_to_voice_oneshot_api_v1_audio_dub_post": {
+        "properties": {
+          "file": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "binary"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "File",
+            "description": "Audio or video file to recognize speech from"
+          },
+          "media_url": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Media Url",
+            "description": "Or URL to audio/video file"
+          },
+          "voice_id": {
+            "type": "string",
+            "title": "Voice Id",
+            "description": "New AI Voice ID (e.g. 'multi:vi-VN-NamMinh', 'multi:ru-RU-Dmitry', 'auto')",
+            "default": "auto"
+          },
+          "voice_gender": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Voice Gender",
+            "description": "'female' or 'male' when voice_id='auto'"
+          },
+          "target_language": {
+            "type": "string",
+            "title": "Target Language",
+            "description": "Target language ('vi', 'ru', 'en', 'ja', 'ko', 'zh', 'original'...)",
+            "default": "vi"
+          },
+          "sub_mode": {
+            "type": "string",
+            "title": "Sub Mode",
+            "description": "'target', 'bilingual', or 'original'",
+            "default": "target"
+          },
+          "webhook_url": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Webhook Url",
+            "description": "Optional Webhook URL"
+          }
+        },
+        "type": "object",
+        "title": "Body_dub_audio_to_voice_oneshot_api_v1_audio_dub_post"
+      },
+      "Body_generate_video_oneshot_api_v1_videos_generate_post": {
+        "properties": {
+          "files": {
+            "anyOf": [
+              {
+                "items": {
+                  "type": "string",
+                  "format": "binary"
+                },
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Files",
+            "description": "1 or more video files to dub/merge"
+          },
+          "video_urls": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Video Urls",
+            "description": "Comma/newline separated list or JSON array of video URLs"
+          },
+          "music_file": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "binary"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Music File",
+            "description": "Optional background music file"
+          },
+          "music_url": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Music Url",
+            "description": "Optional background music URL"
+          },
+          "title": {
+            "type": "string",
+            "title": "Title",
+            "default": "API Video Project"
+          },
+          "voice_id": {
+            "type": "string",
+            "title": "Voice Id",
+            "description": "Voice ID (e.g. 'multi:ru-RU-Dmitry', 'multi:en-US-Ava', 'multi:ja-JP-Nanami', 'multi:ko-KR-SunHi', 'auto')",
+            "default": "auto"
+          },
+          "voice_gender": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Voice Gender",
+            "description": "Optional 'female' or 'male' when voice_id='auto'"
+          },
+          "target_language": {
+            "type": "string",
+            "title": "Target Language",
+            "description": "Target language code ('vi', 'en', 'ru', 'ja', 'ko', 'zh', 'original'...)",
+            "default": "vi"
+          },
+          "sub_mode": {
+            "type": "string",
+            "title": "Sub Mode",
+            "description": "Subtitle mode: 'target', 'bilingual', or 'original'",
+            "default": "target"
+          },
+          "burn_subtitles": {
+            "type": "boolean",
+            "title": "Burn Subtitles",
+            "description": "Burn hardsub directly into output MP4",
+            "default": false
+          },
+          "webhook_url": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Webhook Url",
+            "description": "Optional URL to receive HTTP POST when job completes"
+          }
+        },
+        "type": "object",
+        "title": "Body_generate_video_oneshot_api_v1_videos_generate_post"
+      },
+      "Body_set_job_music_api_v1_jobs__job_id__music_post": {
+        "properties": {
+          "file": {
+            "type": "string",
+            "format": "binary",
+            "title": "File"
+          }
+        },
+        "type": "object",
+        "required": [
+          "file"
+        ],
+        "title": "Body_set_job_music_api_v1_jobs__job_id__music_post"
+      },
+      "Body_transcribe_media_oneshot_api_v1_audio_transcribe_post": {
+        "properties": {
+          "file": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "binary"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "File",
+            "description": "Audio or video file to transcribe"
+          },
+          "media_url": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Media Url",
+            "description": "Or URL to audio/video file"
+          },
+          "target_language": {
+            "type": "string",
+            "title": "Target Language",
+            "description": "Target language ('vi', 'en', 'original'...)",
+            "default": "vi"
+          },
+          "sub_mode": {
+            "type": "string",
+            "title": "Sub Mode",
+            "description": "'target', 'bilingual', or 'original'",
+            "default": "target"
+          }
+        },
+        "type": "object",
+        "title": "Body_transcribe_media_oneshot_api_v1_audio_transcribe_post"
+      },
+      "CountryItem": {
+        "properties": {
+          "code": {
+            "type": "string",
+            "title": "Code",
+            "description": "ISO 2-letter country code (e.g. VN, US, GB, CN, TW, JP, KR, RU, FR, DE, ES, TH)"
+          },
+          "name": {
+            "type": "string",
+            "title": "Name",
+            "description": "Country name in English (e.g. Vietnam, United States)"
+          },
+          "name_vi": {
+            "type": "string",
+            "title": "Name Vi",
+            "description": "Country name in Vietnamese (e.g. Việt Nam, Hoa Kỳ)"
+          },
+          "languages": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Languages",
+            "description": "Language codes available in this country"
+          },
+          "genders": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Genders",
+            "description": "Available voice genders (female, male)"
+          },
+          "voice_count": {
+            "type": "integer",
+            "title": "Voice Count",
+            "description": "Number of voices available in this country",
+            "default": 0
+          }
+        },
+        "type": "object",
+        "required": [
+          "code",
+          "name",
+          "name_vi"
+        ],
+        "title": "CountryItem"
+      },
+      "CreateApiKeyRequest": {
+        "properties": {
+          "name": {
+            "type": "string",
+            "title": "Name"
+          },
+          "custom_key": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Custom Key"
+          }
+        },
+        "type": "object",
+        "required": [
+          "name"
+        ],
+        "title": "CreateApiKeyRequest"
+      },
+      "CreateJobRequest": {
+        "properties": {
+          "title": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Title",
+            "default": "Project mới"
+          },
+          "target_language": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Target Language",
+            "default": "vi"
+          },
+          "sub_mode": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Sub Mode",
+            "default": "target"
+          },
+          "burn_subtitles": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Burn Subtitles",
+            "default": false
+          },
+          "default_voice_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Default Voice Id",
+            "default": "multi:vi-VN-HoaiMy"
+          },
+          "webhook_url": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Webhook Url"
+          }
+        },
+        "type": "object",
+        "title": "CreateJobRequest"
+      },
+      "HTTPValidationError": {
+        "properties": {
+          "detail": {
+            "items": {
+              "$ref": "#/components/schemas/ValidationError"
+            },
+            "type": "array",
+            "title": "Detail"
+          }
+        },
+        "type": "object",
+        "title": "HTTPValidationError"
+      },
+      "RetranslateRequest": {
+        "properties": {
+          "target_language": {
+            "type": "string",
+            "title": "Target Language",
+            "default": "vi"
+          },
+          "sub_mode": {
+            "type": "string",
+            "title": "Sub Mode",
+            "default": "target"
+          }
+        },
+        "type": "object",
+        "title": "RetranslateRequest"
+      },
+      "SegmentTTSRequest": {
+        "properties": {
+          "voice_id": {
+            "type": "string",
+            "title": "Voice Id"
+          },
+          "target_language": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Target Language"
+          }
+        },
+        "type": "object",
+        "required": [
+          "voice_id"
+        ],
+        "title": "SegmentTTSRequest"
+      },
+      "StartJobRequest": {
+        "properties": {
+          "voice_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Voice Id"
+          },
+          "voice_gender": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Voice Gender"
+          },
+          "target_language": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Target Language"
+          },
+          "sub_mode": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Sub Mode"
+          },
+          "burn_subtitles": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Burn Subtitles"
+          },
+          "webhook_url": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Webhook Url"
+          }
+        },
+        "type": "object",
+        "title": "StartJobRequest"
+      },
+      "TextToSpeechRequest": {
+        "properties": {
+          "text": {
+            "type": "string",
+            "title": "Text"
+          },
+          "voice_id": {
+            "type": "string",
+            "title": "Voice Id",
+            "default": "auto"
+          },
+          "language": {
+            "type": "string",
+            "title": "Language",
+            "default": "vi"
+          },
+          "voice_gender": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Voice Gender"
+          },
+          "translate_text": {
+            "type": "boolean",
+            "title": "Translate Text",
+            "default": false
+          },
+          "speed": {
+            "type": "number",
+            "title": "Speed",
+            "default": 1.0
+          },
+          "output_format": {
+            "type": "string",
+            "title": "Output Format",
+            "default": "mp3"
+          },
+          "title": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Title",
+            "default": "TTS Voice Task"
+          },
+          "webhook_url": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Webhook Url"
+          }
+        },
+        "type": "object",
+        "required": [
+          "text"
+        ],
+        "title": "TextToSpeechRequest"
+      },
+      "UpdateApiKeyRequest": {
+        "properties": {
+          "is_active": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Is Active"
+          },
+          "name": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Name"
+          }
+        },
+        "type": "object",
+        "title": "UpdateApiKeyRequest"
+      },
+      "UpdateSegmentRequest": {
+        "properties": {
+          "edited_text": {
+            "type": "string",
+            "title": "Edited Text"
+          }
+        },
+        "type": "object",
+        "required": [
+          "edited_text"
+        ],
+        "title": "UpdateSegmentRequest"
+      },
+      "ValidationError": {
+        "properties": {
+          "loc": {
+            "items": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "integer"
+                }
+              ]
+            },
+            "type": "array",
+            "title": "Location"
+          },
+          "msg": {
+            "type": "string",
+            "title": "Message"
+          },
+          "type": {
+            "type": "string",
+            "title": "Error Type"
+          }
+        },
+        "type": "object",
+        "required": [
+          "loc",
+          "msg",
+          "type"
+        ],
+        "title": "ValidationError"
+      },
+      "VoiceFilterOption": {
+        "properties": {
+          "code": {
+            "type": "string",
+            "title": "Code"
+          },
+          "label": {
+            "type": "string",
+            "title": "Label"
+          },
+          "count": {
+            "type": "integer",
+            "title": "Count",
+            "default": 0
+          }
+        },
+        "type": "object",
+        "required": [
+          "code",
+          "label"
+        ],
+        "title": "VoiceFilterOption"
+      },
+      "VoiceFiltersResponse": {
+        "properties": {
+          "total_voices": {
+            "type": "integer",
+            "title": "Total Voices"
+          },
+          "countries": {
+            "items": {
+              "$ref": "#/components/schemas/CountryItem"
+            },
+            "type": "array",
+            "title": "Countries"
+          },
+          "languages": {
+            "items": {
+              "$ref": "#/components/schemas/VoiceFilterOption"
+            },
+            "type": "array",
+            "title": "Languages"
+          },
+          "genders": {
+            "items": {
+              "$ref": "#/components/schemas/VoiceFilterOption"
+            },
+            "type": "array",
+            "title": "Genders"
+          },
+          "voice_types": {
+            "items": {
+              "$ref": "#/components/schemas/VoiceFilterOption"
+            },
+            "type": "array",
+            "title": "Voice Types"
+          }
+        },
+        "type": "object",
+        "required": [
+          "total_voices",
+          "countries",
+          "languages",
+          "genders",
+          "voice_types"
+        ],
+        "title": "VoiceFiltersResponse"
+      },
+      "VoiceItem": {
+        "properties": {
+          "id": {
+            "type": "string",
+            "title": "Id",
+            "description": "Unique Voice ID (e.g. 'multi:vi-VN-NamMinh', 'multi:en-US-Ava')"
+          },
+          "name": {
+            "type": "string",
+            "title": "Name",
+            "description": "Display name of the voice"
+          },
+          "subtitle": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Subtitle",
+            "description": "Short description / style of the voice"
+          },
+          "lang": {
+            "type": "string",
+            "title": "Lang",
+            "description": "Language code (vi, en, ru, ja, ko, zh, fr, de, es, th)"
+          },
+          "country": {
+            "type": "string",
+            "title": "Country",
+            "description": "2-letter country code (VN, US, GB, RU, JP, KR, CN, TW, FR, DE, ES, TH)"
+          },
+          "country_name": {
+            "type": "string",
+            "title": "Country Name",
+            "description": "Country name (Vietnam, United States, ...)"
+          },
+          "locale": {
+            "type": "string",
+            "title": "Locale",
+            "description": "Locale code (e.g. vi-VN, en-US, en-GB, zh-CN, zh-TW)"
+          },
+          "gender": {
+            "type": "string",
+            "title": "Gender",
+            "description": "Voice gender: 'female', 'male', or 'unknown'"
+          },
+          "type": {
+            "type": "string",
+            "title": "Type",
+            "description": "Voice engine type: 'multilingual', 'vieneu_offline', or 'cloned'",
+            "default": "multilingual"
+          },
+          "demo": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Demo",
+            "description": "Sample preview sentence for this voice"
+          }
+        },
+        "type": "object",
+        "required": [
+          "id",
+          "name",
+          "lang",
+          "country",
+          "country_name",
+          "locale",
+          "gender"
+        ],
+        "title": "VoiceItem"
+      },
+      "VoicePreviewRequest": {
+        "properties": {
+          "voice_id": {
+            "type": "string",
+            "title": "Voice Id",
+            "default": "multi:vi-VN-HoaiMy"
+          },
+          "text": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Text"
+          },
+          "speed": {
+            "type": "number",
+            "title": "Speed",
+            "default": 1.0
+          }
+        },
+        "type": "object",
+        "title": "VoicePreviewRequest"
+      },
+      "VoicesListResponse": {
+        "properties": {
+          "total_voices": {
+            "type": "integer",
+            "title": "Total Voices"
+          },
+          "applied_filters": {
+            "additionalProperties": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "type": "object",
+            "title": "Applied Filters"
+          },
+          "default_female_voice_by_language": {
+            "additionalProperties": {
+              "type": "string"
+            },
+            "type": "object",
+            "title": "Default Female Voice By Language"
+          },
+          "default_male_voice_by_language": {
+            "additionalProperties": {
+              "type": "string"
+            },
+            "type": "object",
+            "title": "Default Male Voice By Language"
+          },
+          "by_language": {
+            "additionalProperties": {
+              "items": {
+                "additionalProperties": true,
+                "type": "object"
+              },
+              "type": "array"
+            },
+            "type": "object",
+            "title": "By Language"
+          },
+          "by_country": {
+            "additionalProperties": {
+              "items": {
+                "additionalProperties": true,
+                "type": "object"
+              },
+              "type": "array"
+            },
+            "type": "object",
+            "title": "By Country"
+          },
+          "voices": {
+            "items": {
+              "$ref": "#/components/schemas/VoiceItem"
+            },
+            "type": "array",
+            "title": "Voices"
+          },
+          "multilingual_voices": {
+            "items": {
+              "additionalProperties": true,
+              "type": "object"
+            },
+            "type": "array",
+            "title": "Multilingual Voices"
+          },
+          "vieneu_preset_voices": {
+            "items": {
+              "additionalProperties": true,
+              "type": "object"
+            },
+            "type": "array",
+            "title": "Vieneu Preset Voices"
+          },
+          "cloned_voices": {
+            "items": {
+              "additionalProperties": true,
+              "type": "object"
+            },
+            "type": "array",
+            "title": "Cloned Voices"
+          }
+        },
+        "type": "object",
+        "required": [
+          "total_voices",
+          "applied_filters",
+          "default_female_voice_by_language",
+          "default_male_voice_by_language",
+          "by_language",
+          "by_country",
+          "voices",
+          "multilingual_voices",
+          "vieneu_preset_voices",
+          "cloned_voices"
+        ],
+        "title": "VoicesListResponse"
+      }
+    },
+    "securitySchemes": {
+      "APIKeyHeader": {
+        "type": "apiKey",
+        "description": "KingVoice API Key (e.g. `kv_live_...`)",
+        "in": "header",
+        "name": "X-API-Key"
+      },
+      "HTTPBearer": {
+        "type": "http",
+        "description": "Or pass API Key via `Authorization: Bearer kv_live_...`",
+        "scheme": "bearer"
+      }
+    }
+  }
+}

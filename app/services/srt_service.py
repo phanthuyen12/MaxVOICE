@@ -26,19 +26,38 @@ def _parse_timestamp(value):
     return h * 3600000 + m * 60000 + s * 1000 + ms
 
 
-def segments_to_srt(segments):
-    """Builds an SRT file body from whisper-style segments: [{start, end, text}]."""
+def format_cue_text(cue, mode="target"):
+    """Trả về nội dung hiển thị của 1 cue phụ đề theo chế độ:
+    - 'target'    : Phụ đề ngôn ngữ đích (translatedText hoặc text)
+    - 'original'  : Phụ đề ngôn ngữ gốc (originalText hoặc text)
+    - 'bilingual' : Phụ đề Song ngữ (Dòng 1: Đích, Dòng 2: Gốc nếu khác nhau)
+    """
+    target_text = str(cue.get("translatedText") or cue.get("text") or "").strip()
+    orig_text = str(cue.get("originalText") or cue.get("text") or "").strip()
+
+    if mode == "original":
+        return orig_text or target_text
+    if mode == "bilingual":
+        if orig_text and target_text and orig_text.lower() != target_text.lower():
+            return f"{target_text}\n{orig_text}"
+        return target_text or orig_text
+    return target_text or orig_text
+
+
+def segments_to_srt(segments, mode="target"):
+    """Builds an SRT file body from whisper-style segments: [{start, end, text, ...}]."""
     blocks = []
     for i, seg in enumerate(segments):
         index = i + 1
         start = _format_timestamp(seg["start"])
         end = _format_timestamp(seg["end"])
-        blocks.append(f"{index}\n{start} --> {end}\n{seg['text']}\n")
+        body = format_cue_text(seg, mode=mode)
+        blocks.append(f"{index}\n{start} --> {end}\n{body}\n")
     return "\n".join(blocks)
 
 
-def segments_to_plain_text(segments):
-    text = " ".join(s["text"] for s in segments)
+def segments_to_plain_text(segments, mode="target"):
+    text = " ".join(format_cue_text(s, mode=mode).replace("\n", " ") for s in segments)
     return re.sub(r"\s+", " ", text).strip()
 
 

@@ -1,0 +1,2482 @@
+<!DOCTYPE html>
+<html lang="vi">
+
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>KING VOICE — Hệ thống Lồng tiếng Video, Tạo Giọng AI & Quản lý Task</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link
+    href="https://fonts.googleapis.com/css2?family=Be+Vietnam+Pro:wght@400;500;600;700;800&family=JetBrains+Mono:wght@500;600&display=swap"
+    rel="stylesheet" />
+  <style>
+    :root {
+      --bg: #F7F8FA;
+      --surface: #FFFFFF;
+      --surface-subtle: #F8FAFC;
+      --surface-muted: #F1F5F9;
+      --border: #E5E7EB;
+      --border-subtle: #EEF2F6;
+      --text: #172033;
+      --text-secondary: #475569;
+      --muted: #64748B;
+
+      --primary: #DC2626;
+      --primary-hover: #B91C1C;
+      --primary-dark: #991B1B;
+      --primary-soft: #FEF2F2;
+      --primary-border: #FECACA;
+
+      --green: #15803D;
+      --green-dot: #16A34A;
+      --green-soft: #ECFDF5;
+      --green-border: #BBF7D0;
+
+      --blue: #1D4ED8;
+      --blue-soft: #EFF6FF;
+      --blue-border: #BFDBFE;
+
+      --amber: #B45309;
+      --amber-soft: #FFFBEB;
+      --amber-border: #FDE68A;
+
+      --red: #DC2626;
+      --red-soft: #FEF2F2;
+
+      --radius-sm: 8px;
+      --radius-md: 12px;
+      --radius-lg: 16px;
+
+      --shadow-xs: 0 1px 2px rgba(23, 32, 51, 0.04);
+      --shadow-sm: 0 1px 3px rgba(23, 32, 51, 0.06), 0 1px 2px rgba(23, 32, 51, 0.03);
+      --focus-ring: 0 0 0 3px rgba(220, 38, 38, 0.16);
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    body {
+      font-family: "Be Vietnam Pro", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      font-size: 14px;
+      color: var(--text);
+      background: var(--bg);
+      min-height: 100vh;
+      line-height: 1.5;
+      -webkit-font-smoothing: antialiased;
+      overflow-x: hidden;
+    }
+
+    /* 1. SHARED CONTAINER (1320-1440px target, 24-32px horizontal padding) */
+    .shell-container {
+      width: 100%;
+      max-width: 1380px;
+      margin: 0 auto;
+      padding-left: 28px;
+      padding-right: 28px;
+    }
+
+    .icon {
+      width: 16px;
+      height: 16px;
+      stroke: currentColor;
+      stroke-width: 2;
+      stroke-linecap: round;
+      stroke-linejoin: round;
+      fill: none;
+      flex-shrink: 0;
+    }
+
+    .icon-sm {
+      width: 14px;
+      height: 14px;
+    }
+
+    .icon-lg {
+      width: 20px;
+      height: 20px;
+    }
+
+    @keyframes spin {
+      to {
+        transform: rotate(360deg);
+      }
+    }
+
+    .spin {
+      animation: spin 0.9s linear infinite;
+    }
+
+    /* 2. HEADER (Height 72-80px) */
+    header.site-header {
+      background: var(--surface);
+      border-bottom: 1px solid var(--border);
+      position: sticky;
+      top: 0;
+      z-index: 50;
+      box-shadow: var(--shadow-xs);
+    }
+
+    .header-inner {
+      min-height: 76px;
+      padding-top: 12px;
+      padding-bottom: 12px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 16px;
+    }
+
+    .brand {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      min-width: 0;
+    }
+
+    .brand-logo {
+      width: 40px;
+      height: 40px;
+      border-radius: 10px;
+      background: var(--primary);
+      color: #FFFFFF;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-weight: 800;
+      font-size: 16px;
+      letter-spacing: -0.5px;
+      flex-shrink: 0;
+      box-shadow: 0 2px 6px rgba(220, 38, 38, 0.22);
+    }
+
+    .brand-title {
+      min-width: 0;
+    }
+
+    .brand-title-row {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      flex-wrap: wrap;
+    }
+
+    .brand-title h1 {
+      font-size: 18px;
+      font-weight: 800;
+      letter-spacing: -0.3px;
+      color: var(--text);
+      line-height: 1.2;
+    }
+
+    .brand-title h1 .red {
+      color: var(--primary);
+    }
+
+    .brand-badge {
+      font-size: 11px;
+      font-weight: 600;
+      background: var(--surface-muted);
+      color: var(--text-secondary);
+      border: 1px solid var(--border);
+      padding: 2px 8px;
+      border-radius: 999px;
+      line-height: 1.4;
+    }
+
+    .brand-title p {
+      font-size: 12px;
+      color: var(--muted);
+      margin-top: 2px;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    .header-actions {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      flex-shrink: 0;
+      flex-wrap: wrap;
+    }
+
+    .status-pill {
+      background: var(--green-soft);
+      border: 1px solid var(--green-border);
+      color: var(--green);
+      padding: 6px 12px;
+      border-radius: 999px;
+      font-size: 12px;
+      font-weight: 600;
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      line-height: 1.2;
+      white-space: nowrap;
+    }
+
+    .status-pill.offline {
+      background: var(--red-soft);
+      border-color: var(--primary-border);
+      color: var(--primary-dark);
+    }
+
+    .status-dot {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      background: var(--green-dot);
+      flex-shrink: 0;
+    }
+
+    .status-pill.offline .status-dot {
+      background: var(--primary);
+    }
+
+    /* Main Workspace Spacing (8px scale) */
+    main.workspace {
+      padding-top: 24px;
+      padding-bottom: 48px;
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+    }
+
+    /* 3. KPI STATS ROW (Height 96-110px, no left red stripe, subtle icon box) */
+    .stats-grid {
+      display: grid;
+      grid-template-columns: repeat(4, minmax(0, 1fr));
+      gap: 16px;
+    }
+
+    .stat-card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-md);
+      padding: 16px;
+      min-height: 102px;
+      box-shadow: var(--shadow-xs);
+      display: flex;
+      align-items: flex-start;
+      justify-content: space-between;
+      gap: 12px;
+    }
+
+    .stat-content {
+      min-width: 0;
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+    }
+
+    .stat-card .label {
+      font-size: 12px;
+      color: var(--muted);
+      font-weight: 600;
+      line-height: 1.3;
+    }
+
+    .stat-card .value {
+      font-size: 24px;
+      font-weight: 700;
+      color: var(--text);
+      line-height: 1.2;
+      letter-spacing: -0.3px;
+    }
+
+    .stat-card .sub {
+      font-size: 12px;
+      color: var(--muted);
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    .stat-icon {
+      width: 40px;
+      height: 40px;
+      border-radius: 10px;
+      background: var(--surface-muted);
+      color: var(--text-secondary);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-shrink: 0;
+    }
+
+    .stat-icon.accent {
+      background: var(--primary-soft);
+      color: var(--primary);
+    }
+
+    /* 3. NAVIGATION TABS (Full container width, active soft red bg + dark red text + indicator) */
+    .tabs-bar {
+      width: 100%;
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-md);
+      padding: 6px;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      box-shadow: var(--shadow-xs);
+      overflow-x: auto;
+      scrollbar-width: none;
+    }
+
+    .tabs-bar::-webkit-scrollbar {
+      display: none;
+    }
+
+    .tab-btn {
+      flex: 1 1 auto;
+      background: transparent;
+      border: 1px solid transparent;
+      color: var(--text-secondary);
+      padding: 10px 16px;
+      font-family: inherit;
+      font-size: 13.5px;
+      font-weight: 600;
+      cursor: pointer;
+      border-radius: var(--radius-sm);
+      transition: background 0.15s ease, color 0.15s ease, border-color 0.15s ease;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      white-space: nowrap;
+      position: relative;
+    }
+
+    .tab-btn:hover {
+      color: var(--text);
+      background: var(--surface-subtle);
+    }
+
+    .tab-btn:focus-visible {
+      outline: none;
+      box-shadow: var(--focus-ring);
+    }
+
+    .tab-btn.active {
+      color: var(--primary-dark);
+      background: var(--primary-soft);
+      border-color: var(--primary-border);
+      font-weight: 700;
+    }
+
+    .tab-count {
+      font-size: 11.5px;
+      font-weight: 700;
+      padding: 1px 7px;
+      border-radius: 999px;
+      background: var(--surface-muted);
+      color: var(--text-secondary);
+    }
+
+    .tab-btn.active .tab-count {
+      background: #FEE2E2;
+      color: var(--primary-dark);
+    }
+
+    .tab-panel {
+      display: none;
+    }
+
+    .tab-panel.active {
+      display: block;
+    }
+
+    /* Content Cards */
+    .panel-card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-lg);
+      padding: 24px;
+      box-shadow: var(--shadow-xs);
+    }
+
+    .panel-header {
+      display: flex;
+      align-items: flex-start;
+      justify-content: space-between;
+      gap: 16px;
+      margin-bottom: 16px;
+      padding-bottom: 16px;
+      border-bottom: 1px solid var(--border-subtle);
+      flex-wrap: wrap;
+    }
+
+    .panel-title-group h2 {
+      font-size: 20px;
+      font-weight: 700;
+      color: var(--text);
+      letter-spacing: -0.2px;
+      line-height: 1.3;
+    }
+
+    .panel-title-group p {
+      font-size: 13px;
+      color: var(--muted);
+      margin-top: 4px;
+    }
+
+    /* Buttons */
+    .btn {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 6px;
+      padding: 8px 14px;
+      border-radius: var(--radius-sm);
+      font-family: inherit;
+      font-size: 13px;
+      font-weight: 600;
+      cursor: pointer;
+      border: 1px solid transparent;
+      transition: all 0.15s ease;
+      text-decoration: none;
+      white-space: nowrap;
+      line-height: 1.4;
+    }
+
+    .btn:focus-visible {
+      outline: none;
+      box-shadow: var(--focus-ring);
+    }
+
+    .btn:disabled {
+      opacity: 0.6;
+      cursor: not-allowed;
+    }
+
+    .btn-primary {
+      background: var(--primary);
+      color: #FFFFFF;
+    }
+
+    .btn-primary:hover:not(:disabled) {
+      background: var(--primary-hover);
+    }
+
+    .btn-secondary {
+      background: var(--surface);
+      border-color: var(--border);
+      color: var(--text);
+    }
+
+    .btn-secondary:hover:not(:disabled) {
+      background: var(--surface-subtle);
+      border-color: #CBD5E1;
+    }
+
+    .btn-danger {
+      background: var(--surface);
+      border-color: var(--border);
+      color: var(--red);
+    }
+
+    .btn-danger:hover:not(:disabled) {
+      background: var(--red-soft);
+      border-color: var(--primary-border);
+    }
+
+    .btn-sm {
+      padding: 6px 10px;
+      font-size: 12px;
+      border-radius: 7px;
+    }
+
+    .btn-icon-only {
+      padding: 5px;
+      border-radius: 6px;
+      background: transparent;
+      border: 1px solid transparent;
+      color: var(--muted);
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      transition: all 0.15s ease;
+    }
+
+    .btn-icon-only:hover {
+      color: var(--text);
+      background: var(--border-subtle);
+    }
+
+    .btn-icon-only:focus-visible {
+      outline: none;
+      box-shadow: var(--focus-ring);
+    }
+
+    .btn-icon-only.copied {
+      color: var(--green);
+      background: var(--green-soft);
+    }
+
+    /* Preview Audio Button States */
+    .btn-preview {
+      min-width: 108px;
+      background: var(--surface);
+      border: 1px solid var(--border);
+      color: var(--text);
+    }
+
+    .btn-preview:hover:not(:disabled) {
+      border-color: var(--primary);
+      color: var(--primary);
+      background: var(--primary-soft);
+    }
+
+    .btn-preview.is-playing {
+      background: var(--primary-soft);
+      border-color: var(--primary);
+      color: var(--primary-dark);
+    }
+
+    .btn-preview.is-error {
+      background: var(--red-soft);
+      border-color: var(--primary-border);
+      color: var(--red);
+    }
+
+    /* Toolbar for Voice Library & Filter Controls */
+    .voice-toolbar {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      margin-bottom: 16px;
+      flex-wrap: wrap;
+    }
+
+    .search-field {
+      position: relative;
+      flex: 1 1 280px;
+      max-width: 420px;
+    }
+
+    .search-field .search-icon {
+      position: absolute;
+      left: 12px;
+      top: 50%;
+      transform: translateY(-50%);
+      color: var(--muted);
+      pointer-events: none;
+    }
+
+    .search-field input {
+      padding-left: 36px;
+      padding-right: 32px;
+    }
+
+    .search-clear {
+      position: absolute;
+      right: 8px;
+      top: 50%;
+      transform: translateY(-50%);
+      display: none;
+    }
+
+    .toolbar-filters {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      flex-wrap: wrap;
+    }
+
+    /* Form Controls */
+    .form-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+      gap: 16px;
+      margin-bottom: 16px;
+    }
+
+    .form-group label {
+      display: block;
+      font-size: 12.5px;
+      color: var(--text);
+      margin-bottom: 6px;
+      font-weight: 600;
+    }
+
+    .form-control {
+      width: 100%;
+      background: var(--surface);
+      border: 1px solid var(--border);
+      color: var(--text);
+      padding: 8px 12px;
+      border-radius: var(--radius-sm);
+      font-family: inherit;
+      font-size: 14px;
+      line-height: 1.4;
+      outline: none;
+      transition: border-color 0.15s ease, box-shadow 0.15s ease;
+    }
+
+    .form-control:focus {
+      border-color: var(--primary);
+      box-shadow: var(--focus-ring);
+    }
+
+    /* Tables */
+    .table-wrap {
+      width: 100%;
+      overflow-x: auto;
+    }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 14px;
+    }
+
+    th,
+    td {
+      text-align: left;
+      padding: 12px 14px;
+      border-bottom: 1px solid var(--border-subtle);
+      vertical-align: middle;
+    }
+
+    th {
+      color: var(--muted);
+      font-weight: 600;
+      font-size: 12px;
+      background: var(--surface-subtle);
+      border-top: 1px solid var(--border-subtle);
+      white-space: nowrap;
+    }
+
+    tbody tr {
+      height: 72px;
+      transition: background 0.12s ease;
+    }
+
+    tbody tr:hover td {
+      background: var(--surface-subtle);
+    }
+
+    /* Voice Library Table Cells */
+    .voice-primary-name {
+      font-weight: 600;
+      color: var(--text);
+      font-size: 14px;
+      line-height: 1.35;
+    }
+
+    .voice-sub-meta {
+      font-size: 12px;
+      color: var(--muted);
+      margin-top: 2px;
+      line-height: 1.35;
+    }
+
+    .voice-id-cell {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      max-width: 240px;
+    }
+
+    .code-chip {
+      font-family: "JetBrains Mono", "SFMono-Regular", Consolas, monospace;
+      background: var(--surface-muted);
+      border: 1px solid var(--border);
+      padding: 4px 8px;
+      border-radius: 6px;
+      font-size: 12px;
+      color: var(--text-secondary);
+      font-weight: 500;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      max-width: 195px;
+      display: inline-block;
+      vertical-align: middle;
+    }
+
+    .desc-clamp {
+      display: -webkit-box;
+      -webkit-line-clamp: 2;
+      -webkit-box-orient: vertical;
+      overflow: hidden;
+      font-size: 13px;
+      color: var(--text-secondary);
+      line-height: 1.45;
+      max-width: 320px;
+    }
+
+    /* Badges */
+    .badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 5px;
+      padding: 3px 10px;
+      border-radius: 999px;
+      font-size: 12px;
+      font-weight: 600;
+      white-space: nowrap;
+      line-height: 1.35;
+    }
+
+    .badge-neutral {
+      background: var(--surface-muted);
+      color: var(--text-secondary);
+      border: 1px solid var(--border);
+    }
+
+    .badge-green {
+      background: var(--green-soft);
+      color: var(--green);
+      border: 1px solid var(--green-border);
+    }
+
+    .badge-blue {
+      background: var(--blue-soft);
+      color: var(--blue);
+      border: 1px solid var(--blue-border);
+    }
+
+    .badge-amber {
+      background: var(--amber-soft);
+      color: var(--amber);
+      border: 1px solid var(--amber-border);
+    }
+
+    .badge-red {
+      background: var(--red-soft);
+      color: var(--red);
+      border: 1px solid var(--primary-border);
+    }
+
+    /* Progress Bar */
+    .progress-wrap {
+      width: 140px;
+      background: var(--surface-muted);
+      height: 6px;
+      border-radius: 999px;
+      overflow: hidden;
+      margin-bottom: 4px;
+    }
+
+    .progress-fill {
+      height: 100%;
+      background: var(--primary);
+      transition: width 0.35s ease;
+    }
+
+    .progress-fill.done {
+      background: var(--green-dot);
+    }
+
+    /* Mobile Voice Cards (hidden on desktop, shown on <= 768px) */
+    .voices-mobile-list {
+      display: none;
+      flex-direction: column;
+      gap: 12px;
+    }
+
+    .voice-mobile-card {
+      border: 1px solid var(--border);
+      border-radius: var(--radius-md);
+      padding: 14px 16px;
+      background: var(--surface);
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+    }
+
+    .voice-mobile-top {
+      display: flex;
+      align-items: flex-start;
+      justify-content: space-between;
+      gap: 8px;
+    }
+
+    .voice-mobile-badges {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      flex-wrap: wrap;
+    }
+
+    .voice-mobile-footer {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 8px;
+      padding-top: 8px;
+      border-top: 1px solid var(--border-subtle);
+    }
+
+    /* Empty / Error State Box */
+    .state-box {
+      text-align: center;
+      padding: 36px 20px;
+      color: var(--muted);
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .state-box .state-title {
+      font-size: 14px;
+      font-weight: 600;
+      color: var(--text);
+    }
+
+    .state-box .state-desc {
+      font-size: 13px;
+      color: var(--muted);
+      max-width: 420px;
+    }
+
+    /* Studio Grid */
+    .studio-grid {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 16px;
+    }
+
+    pre.code-snippet {
+      font-family: "JetBrains Mono", "SFMono-Regular", Consolas, monospace;
+      background: #0F172A;
+      color: #F8FAFC;
+      border-radius: var(--radius-md);
+      padding: 16px;
+      font-size: 12.5px;
+      overflow-x: auto;
+      line-height: 1.65;
+    }
+
+    .toast {
+      position: fixed;
+      bottom: 24px;
+      right: 24px;
+      background: var(--text);
+      color: #FFFFFF;
+      padding: 10px 16px;
+      border-radius: var(--radius-sm);
+      font-size: 13px;
+      font-weight: 600;
+      box-shadow: 0 8px 24px rgba(23, 32, 51, 0.18);
+      display: none;
+      align-items: center;
+      gap: 8px;
+      z-index: 999;
+    }
+
+    /* 5. RESPONSIVE BREAKPOINTS (1024px, 768px Tablet, 375px Mobile) */
+    @media (max-width: 1024px) {
+      .stats-grid {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+      }
+
+      .studio-grid {
+        grid-template-columns: 1fr;
+      }
+    }
+
+    @media (max-width: 768px) {
+      .shell-container {
+        padding-left: 16px;
+        padding-right: 16px;
+      }
+
+      .header-inner {
+        flex-direction: column;
+        align-items: flex-start;
+        padding-top: 12px;
+        padding-bottom: 12px;
+      }
+
+      .header-actions {
+        width: 100%;
+        justify-content: flex-start;
+      }
+
+      .brand-title p {
+        white-space: normal;
+      }
+
+      .stats-grid {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 12px;
+      }
+
+      .stat-card {
+        padding: 14px;
+        min-height: 96px;
+      }
+
+      .stat-card .value {
+        font-size: 20px;
+      }
+
+      .stat-icon {
+        width: 34px;
+        height: 34px;
+      }
+
+      .tab-btn {
+        flex: 0 0 auto;
+        padding: 9px 14px;
+      }
+
+      .panel-card {
+        padding: 16px;
+      }
+
+      .voice-toolbar {
+        flex-direction: column;
+        align-items: stretch;
+      }
+
+      .search-field {
+        max-width: 100%;
+        flex: 1 1 auto;
+      }
+
+      .toolbar-filters {
+        width: 100%;
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 8px;
+      }
+
+      /* Switch Voices Table to Card List on Mobile */
+      .voices-desktop-table {
+        display: none;
+      }
+
+      .voices-mobile-list {
+        display: flex;
+      }
+    }
+
+    @media (max-width: 420px) {
+      .toolbar-filters {
+        grid-template-columns: 1fr;
+      }
+
+      .stat-card .sub {
+        font-size: 11px;
+      }
+    }
+  </style>
+</head>
+
+<body>
+
+  <!-- 2. HEADER -->
+  <header class="site-header">
+    <div class="shell-container header-inner">
+      <div class="brand">
+        <div class="brand-logo" aria-hidden="true">KV</div>
+        <div class="brand-title">
+          <div class="brand-title-row">
+            <h1>KING <span class="red">VOICE</span></h1>
+            <span class="brand-badge">Enterprise</span>
+          </div>
+          <p>Hệ thống lồng tiếng video, tạo giọng nói AI và quản lý task đa ngôn ngữ</p>
+        </div>
+      </div>
+
+      <div class="header-actions">
+        <div class="status-pill" id="redisPill" title="Trạng thái hàng đợi Redis / Worker">
+          <span class="status-dot" id="redisDot"></span>
+          <span id="redisStatusText">Redis Queue: Đang kiểm tra</span>
+        </div>
+        <div class="status-pill" id="portPill" title="Trạng thái máy chủ API">
+          <span class="status-dot" id="statusDot"></span>
+          <span id="statusText">Port 8686 Online</span>
+        </div>
+        <a href="/docs" target="_blank" rel="noopener" class="btn btn-secondary">
+          <svg class="icon" viewBox="0 0 24 24" aria-hidden="true">
+            <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
+            <polyline points="14 2 14 8 20 8"></polyline>
+            <line x1="16" y1="13" x2="8" y2="13"></line>
+            <line x1="16" y1="17" x2="8" y2="17"></line>
+          </svg>
+          <span>Swagger API</span>
+        </a>
+      </div>
+    </div>
+  </header>
+
+  <main class="shell-container workspace">
+    <!-- 3. KPI SUMMARY CARDS -->
+    <section class="stats-grid" aria-label="Thống kê hệ thống">
+      <div class="stat-card">
+        <div class="stat-content">
+          <div class="label">Tổng số task</div>
+          <div class="value" id="statTotalJobs">0</div>
+          <div class="sub" id="statActiveJobs">0 đang xử lý • 0 hoàn tất</div>
+        </div>
+        <div class="stat-icon accent" aria-hidden="true">
+          <svg class="icon icon-lg" viewBox="0 0 24 24">
+            <rect x="3" y="4" width="18" height="16" rx="2"></rect>
+            <path d="M7 8h10M7 12h6M7 16h8"></path>
+          </svg>
+        </div>
+      </div>
+
+      <div class="stat-card">
+        <div class="stat-content">
+          <div class="label">Hàng đợi Redis Worker</div>
+          <div class="value" id="statQueueSize">0</div>
+          <div class="sub" id="statQueueBackend">Redis Queue • Sẵn sàng</div>
+        </div>
+        <div class="stat-icon" aria-hidden="true">
+          <svg class="icon icon-lg" viewBox="0 0 24 24">
+            <ellipse cx="12" cy="5" rx="9" ry="3"></ellipse>
+            <path d="M21 12c0 1.66-4 3-9 3s-9-1.34-9-3"></path>
+            <path d="M3 5v14c0 1.66 4 3 9 3s9-1.34 9-3V5"></path>
+          </svg>
+        </div>
+      </div>
+
+      <div class="stat-card">
+        <div class="stat-content">
+          <div class="label">Kho giọng đọc AI</div>
+          <div class="value" id="statTotalVoices">84</div>
+          <div class="sub" id="statVoicesSub">Việt, Nga, Anh, Nhật, Hàn, Trung...</div>
+        </div>
+        <div class="stat-icon accent" aria-hidden="true">
+          <svg class="icon icon-lg" viewBox="0 0 24 24">
+            <path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"></path>
+            <path d="M19 10v2a7 7 0 0 1-14 0v-2"></path>
+            <line x1="12" y1="19" x2="12" y2="23"></line>
+            <line x1="8" y1="23" x2="16" y2="23"></line>
+          </svg>
+        </div>
+      </div>
+
+      <div class="stat-card">
+        <div class="stat-content">
+          <div class="label">API Keys đang bật</div>
+          <div class="value" id="statActiveKeys">1</div>
+          <div class="sub" id="statKeyMode">Bảo mật X-API-Key: Đang bật</div>
+        </div>
+        <div class="stat-icon" aria-hidden="true">
+          <svg class="icon icon-lg" viewBox="0 0 24 24">
+            <path
+              d="M21 2l-2 2m-7.61 7.61a5.5 5.5 0 1 1-7.778 7.778 5.5 5.5 0 0 1 7.777-7.777zm0 0L15.5 7.5m0 0l3 3L22 7l-3-3m-3.5 3.5L19 4">
+            </path>
+          </svg>
+        </div>
+      </div>
+    </section>
+
+    <!-- 3. NAVIGATION TABS -->
+    <nav class="tabs-bar" role="tablist" aria-label="Điều hướng chính">
+      <button class="tab-btn active" role="tab" aria-selected="true" onclick="switchTab('tasks', this)">
+        <svg class="icon" viewBox="0 0 24 24" aria-hidden="true">
+          <rect x="2" y="3" width="20" height="14" rx="2"></rect>
+          <line x1="8" y1="21" x2="16" y2="21"></line>
+          <line x1="12" y1="17" x2="12" y2="21"></line>
+        </svg>
+        <span>Quản lý Task</span>
+        <span class="tab-count" id="tabTaskCount">0</span>
+      </button>
+
+      <button class="tab-btn" role="tab" aria-selected="false" onclick="switchTab('studio', this)">
+        <svg class="icon" viewBox="0 0 24 24" aria-hidden="true">
+          <polygon points="5 3 19 12 5 21 5 3"></polygon>
+        </svg>
+        <span>Studio tạo Voice &amp; Test nhanh</span>
+      </button>
+
+      <button class="tab-btn" role="tab" aria-selected="false" onclick="switchTab('keys', this)">
+        <svg class="icon" viewBox="0 0 24 24" aria-hidden="true">
+          <rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect>
+          <path d="M7 11V7a5 5 0 0 1 10 0v4"></path>
+        </svg>
+        <span>Quản lý API Keys</span>
+      </button>
+
+      <button class="tab-btn" role="tab" aria-selected="false" onclick="switchTab('voices', this)">
+        <svg class="icon" viewBox="0 0 24 24" aria-hidden="true">
+          <path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"></path>
+          <path d="M19 10v2a7 7 0 0 1-14 0v-2"></path>
+        </svg>
+        <span>Danh sách giọng nói</span>
+        <span class="tab-count" id="tabVoiceCount">84</span>
+      </button>
+
+      <button class="tab-btn" role="tab" aria-selected="false" onclick="switchTab('apidocs', this)">
+        <svg class="icon" viewBox="0 0 24 24" aria-hidden="true">
+          <polyline points="16 18 22 12 16 6"></polyline>
+          <polyline points="8 6 2 12 8 18"></polyline>
+        </svg>
+        <span>Hướng dẫn gọi API</span>
+      </button>
+    </nav>
+
+    <!-- TAB 1: TASK MANAGER -->
+    <section id="tab-tasks" class="tab-panel active">
+      <div class="panel-card">
+        <div class="panel-header">
+          <div class="panel-title-group">
+            <div style="display:flex; align-items:center; gap:10px; flex-wrap:wrap;">
+              <h2>Danh sách Task xử lý</h2>
+              <span class="badge badge-neutral" id="retentionBadge"
+                title="Hệ thống tự động quét định kỳ và xóa file/task quá 2 giờ để giải phóng ổ cứng VPS">Tự động xóa
+                file sau 2 giờ</span>
+            </div>
+            <p>Theo dõi tiến độ lồng tiếng video, nhận diện giọng nói và tạo file âm thanh theo thời gian thực</p>
+          </div>
+          <div style="display:flex; gap:8px; flex-wrap:wrap;">
+            <button class="btn btn-secondary" onclick="triggerCleanup()"
+              title="Quét và xóa ngay các task/file đã quá thời hạn lưu trữ">
+              <svg class="icon" viewBox="0 0 24 24" aria-hidden="true">
+                <polyline points="3 6 5 6 21 6"></polyline>
+                <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
+              </svg>
+              <span>Dọn file quá hạn</span>
+            </button>
+            <button class="btn btn-secondary" onclick="manualRefresh()">
+              <svg class="icon" viewBox="0 0 24 24" aria-hidden="true">
+                <polyline points="23 4 23 10 17 10"></polyline>
+                <path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"></path>
+              </svg>
+              <span>Làm mới</span>
+            </button>
+            <button class="btn btn-primary" onclick="switchTab('studio', document.querySelectorAll('.tab-btn')[1])">
+              <svg class="icon" viewBox="0 0 24 24" aria-hidden="true">
+                <line x1="12" y1="5" x2="12" y2="19"></line>
+                <line x1="5" y1="12" x2="19" y2="12"></line>
+              </svg>
+              <span>Tạo Task mới</span>
+            </button>
+          </div>
+        </div>
+
+        <div class="table-wrap">
+          <table>
+            <thead>
+              <tr>
+                <th>Tên Task / File</th>
+                <th>Loại</th>
+                <th>Ngôn ngữ &amp; Giọng đọc</th>
+                <th>Trạng thái</th>
+                <th>Tiến độ</th>
+                <th>API Key</th>
+                <th>Thời gian</th>
+                <th>Tải xuống / Thao tác</th>
+              </tr>
+            </thead>
+            <tbody id="jobsTableBody">
+              <tr>
+                <td colspan="8">
+                  <div class="state-box">
+                    <div class="state-title">Đang tải danh sách task...</div>
+                  </div>
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </section>
+
+    <!-- TAB 2: QUICK STUDIO (TTS, SPEECH-TO-VOICE, VIDEO DUBBING) -->
+    <section id="tab-studio" class="tab-panel">
+      <div class="studio-grid">
+        <!-- Card A: Text to Voice -->
+        <div class="panel-card">
+          <div class="panel-header">
+            <div class="panel-title-group">
+              <h2>1. Tạo giọng nói từ văn bản (Text-to-Voice)</h2>
+              <p>Chuyển văn bản thành file âm thanh MP3/WAV trực tiếp hoặc đưa vào hàng đợi</p>
+            </div>
+            <span class="badge badge-neutral">POST /api/v1/tts</span>
+          </div>
+
+          <div class="form-group" style="margin-bottom:16px;">
+            <label for="ttsTextInput">Nội dung văn bản cần đọc</label>
+            <textarea id="ttsTextInput" class="form-control" rows="4"
+              placeholder="Nhập nội dung văn bản cần chuyển thành giọng nói...">Xin chào các bạn! Đây là hệ thống KingVoice chạy trên cổng 8686 với giao diện quản trị chuyên nghiệp.</textarea>
+          </div>
+
+          <div class="form-grid">
+            <div class="form-group">
+              <label for="ttsLang">Ngôn ngữ</label>
+              <select id="ttsLang" class="form-control" onchange="filterStudioVoices('ttsLang', 'ttsVoice')">
+                <option value="vi">Tiếng Việt (vi)</option>
+                <option value="ru">Tiếng Nga (ru)</option>
+                <option value="en">Tiếng Anh (en)</option>
+                <option value="ja">Tiếng Nhật (ja)</option>
+                <option value="ko">Tiếng Hàn (ko)</option>
+                <option value="zh">Tiếng Trung (zh)</option>
+              </select>
+            </div>
+            <div class="form-group">
+              <label for="ttsVoice">Giọng đọc AI</label>
+              <select id="ttsVoice" class="form-control">
+                <option value="auto">Tự động chọn theo ngôn ngữ</option>
+              </select>
+            </div>
+          </div>
+
+          <div style="display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:12px;">
+            <label for="ttsTranslate"
+              style="font-size:13px; display:inline-flex; align-items:center; gap:8px; cursor:pointer; font-weight:500; color:var(--text-secondary);">
+              <input type="checkbox" id="ttsTranslate" />
+              <span>Tự động dịch văn bản sang ngôn ngữ đích</span>
+            </label>
+            <div style="display:flex; gap:8px;">
+              <button class="btn btn-secondary" id="btnTtsQueue" onclick="submitTtsTask(true)">Đẩy vào Queue</button>
+              <button class="btn btn-primary" id="btnTtsSync" onclick="submitTtsTask(false)">Tạo &amp; Nghe
+                ngay</button>
+            </div>
+          </div>
+
+          <div id="ttsAudioResult"
+            style="display:none; margin-top:16px; padding:12px 14px; background:var(--surface-subtle); border:1px solid var(--border); border-radius:var(--radius-sm);">
+            <div style="font-size:12.5px; font-weight:600; color:var(--text); margin-bottom:8px;">File âm thanh vừa tạo:
+            </div>
+            <audio id="ttsAudioPlayer" controls style="width:100%; height:36px;"></audio>
+          </div>
+        </div>
+
+        <!-- Card B: Video / Audio Dubbing -->
+        <div class="panel-card">
+          <div class="panel-header">
+            <div class="panel-title-group">
+              <h2>2. Lồng tiếng Video &amp; Nhận diện giọng nói</h2>
+              <p>Tự động nhận diện lời thoại (Whisper AI), dịch đa ngôn ngữ và ghép giọng đọc mới</p>
+            </div>
+            <span class="badge badge-neutral">Whisper + TTS</span>
+          </div>
+
+          <div class="form-grid">
+            <div class="form-group">
+              <label for="jobMode">Chế độ xử lý</label>
+              <select id="jobMode" class="form-control">
+                <option value="video">Lồng tiếng Video hoàn chỉnh (MP4 + SRT)</option>
+                <option value="audio_dub">Nhận diện Audio/Video sang file Voice mới</option>
+              </select>
+            </div>
+            <div class="form-group">
+              <label for="newJobFiles">Tải lên file Video / Audio</label>
+              <input type="file" id="newJobFiles" class="form-control" multiple accept="video/*,audio/*" />
+            </div>
+            <div class="form-group">
+              <label for="newJobUrls">Hoặc nhập URL trực tiếp (MP4/MP3)</label>
+              <input type="url" id="newJobUrls" class="form-control" placeholder="https://example.com/video.mp4" />
+            </div>
+            <div class="form-group">
+              <label for="newJobLang">Ngôn ngữ đích</label>
+              <select id="newJobLang" class="form-control" onchange="filterStudioVoices('newJobLang', 'newJobVoice')">
+                <option value="vi">Tiếng Việt (vi)</option>
+                <option value="ru">Tiếng Nga (ru)</option>
+                <option value="en">Tiếng Anh (en)</option>
+                <option value="ja">Tiếng Nhật (ja)</option>
+                <option value="ko">Tiếng Hàn (ko)</option>
+                <option value="zh">Tiếng Trung (zh)</option>
+                <option value="original">Giữ nguyên ngôn ngữ gốc (chỉ đổi giọng)</option>
+              </select>
+            </div>
+            <div class="form-group">
+              <label for="newJobVoice">Giọng đọc AI</label>
+              <select id="newJobVoice" class="form-control">
+                <option value="auto">Tự động chọn giọng chuẩn</option>
+              </select>
+            </div>
+            <div class="form-group">
+              <label for="newJobSubMode">Chế độ phụ đề</label>
+              <select id="newJobSubMode" class="form-control">
+                <option value="target">Chỉ phụ đề ngôn ngữ đích</option>
+                <option value="bilingual">Song ngữ (Gốc + Đích)</option>
+                <option value="original">Chỉ phụ đề gốc</option>
+              </select>
+            </div>
+          </div>
+
+          <div style="display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:12px;">
+            <label for="newJobBurnSub"
+              style="font-size:13px; display:inline-flex; align-items:center; gap:8px; cursor:pointer; font-weight:500; color:var(--text-secondary);">
+              <input type="checkbox" id="newJobBurnSub" />
+              <span>Đốt cứng phụ đề (Hardsub) vào video đầu ra</span>
+            </label>
+            <button class="btn btn-primary" id="btnSubmitJob" onclick="submitNewJob()">Bắt đầu chạy Task</button>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- TAB 3: API KEYS MANAGER -->
+    <section id="tab-keys" class="tab-panel">
+      <div class="panel-card">
+        <div class="panel-header">
+          <div class="panel-title-group">
+            <h2>Quản lý API Keys</h2>
+            <p>Cấp phát và kiểm soát quyền truy cập cho các hệ thống bên ngoài gọi vào KingVoice API</p>
+          </div>
+          <label for="chkRequireApiKey"
+            style="font-size:13px; display:inline-flex; align-items:center; gap:8px; cursor:pointer; font-weight:600; color:var(--text);">
+            <input type="checkbox" id="chkRequireApiKey" onchange="toggleRequireApiKey(this.checked)" />
+            <span>Bắt buộc xác thực header <code class="code-chip">X-API-Key</code></span>
+          </label>
+        </div>
+
+        <div
+          style="display:flex; gap:12px; margin-bottom:20px; flex-wrap:wrap; align-items:flex-end; background:var(--surface-subtle); padding:16px; border-radius:var(--radius-md); border:1px solid var(--border);">
+          <div class="form-group" style="flex:1 1 240px;">
+            <label for="newKeyName">Tên hệ thống / Client</label>
+            <input type="text" id="newKeyName" class="form-control"
+              placeholder="VD: Web Server A, Hệ thống dựng video..." />
+          </div>
+          <div class="form-group" style="flex:1 1 240px;">
+            <label for="newKeyCustom">Mã Key tùy chọn (để trống tự sinh)</label>
+            <input type="text" id="newKeyCustom" class="form-control" placeholder="kv_live_..." />
+          </div>
+          <button class="btn btn-primary" style="height:38px;" onclick="createApiKey()">Tạo API Key mới</button>
+        </div>
+
+        <div class="table-wrap">
+          <table>
+            <thead>
+              <tr>
+                <th>Tên Hệ Thống / Client</th>
+                <th>API Key</th>
+                <th>Trạng thái</th>
+                <th>Số Request</th>
+                <th>Lần gọi cuối</th>
+                <th>Ngày tạo</th>
+                <th>Thao tác</th>
+              </tr>
+            </thead>
+            <tbody id="keysTableBody"></tbody>
+          </table>
+        </div>
+      </div>
+    </section>
+
+    <!-- 4. TAB 4: VOICE LIBRARY ("Thư viện giọng nói") -->
+    <section id="tab-voices" class="tab-panel">
+      <div class="panel-card">
+        <div class="panel-header">
+          <div class="panel-title-group">
+            <h2>Thư viện giọng nói</h2>
+            <p id="voiceLibrarySubtitle">Tra cứu, lọc và nghe thử trực tiếp toàn bộ 84 giọng đọc AI đa ngôn ngữ</p>
+          </div>
+        </div>
+
+        <!-- Compact Search & Filter Toolbar -->
+        <div class="voice-toolbar">
+          <div class="search-field">
+            <svg class="icon search-icon" viewBox="0 0 24 24" aria-hidden="true">
+              <circle cx="11" cy="11" r="8"></circle>
+              <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
+            </svg>
+            <input type="search" id="voiceSearchInput" class="form-control"
+              placeholder="Tìm theo tên giọng, mã Voice ID hoặc phong cách đọc..."
+              aria-label="Tìm kiếm giọng đọc theo tên hoặc Voice ID" oninput="onVoiceFilterChange()" />
+            <button type="button" id="voiceSearchClear" class="btn-icon-only search-clear" title="Xóa từ khóa tìm kiếm"
+              aria-label="Xóa từ khóa tìm kiếm" onclick="clearVoiceSearch()">
+              <svg class="icon icon-sm" viewBox="0 0 24 24" aria-hidden="true">
+                <line x1="18" y1="6" x2="6" y2="18"></line>
+                <line x1="6" y1="6" x2="18" y2="18"></line>
+              </svg>
+            </button>
+          </div>
+
+          <div class="toolbar-filters">
+            <select id="voiceCountryFilter" class="form-control" style="min-width:175px; width:auto;"
+              aria-label="Lọc theo quốc gia" onchange="onVoiceFilterChange()">
+              <option value="all">Tất cả quốc gia</option>
+              <option value="VN">Việt Nam (VN)</option>
+              <option value="US">Hoa Kỳ (US)</option>
+              <option value="GB">Anh Quốc (GB)</option>
+              <option value="RU">Nga (RU)</option>
+              <option value="JP">Nhật Bản (JP)</option>
+              <option value="KR">Hàn Quốc (KR)</option>
+              <option value="CN">Trung Quốc (CN)</option>
+              <option value="TW">Đài Loan (TW)</option>
+              <option value="FR">Pháp (FR)</option>
+              <option value="DE">Đức (DE)</option>
+              <option value="ES">Tây Ban Nha (ES)</option>
+              <option value="TH">Thái Lan (TH)</option>
+            </select>
+
+            <select id="voiceLangFilter" class="form-control" style="min-width:190px; width:auto;"
+              aria-label="Lọc theo ngôn ngữ" onchange="onVoiceFilterChange()">
+              <option value="all">Tất cả ngôn ngữ</option>
+              <option value="vi">Tiếng Việt (vi)</option>
+              <option value="ru">Tiếng Nga (ru)</option>
+              <option value="en">Tiếng Anh (en)</option>
+              <option value="ja">Tiếng Nhật (ja)</option>
+              <option value="ko">Tiếng Hàn (ko)</option>
+              <option value="zh">Tiếng Trung (zh)</option>
+              <option value="fr">Tiếng Pháp (fr)</option>
+              <option value="de">Tiếng Đức (de)</option>
+              <option value="es">Tiếng Tây Ban Nha (es)</option>
+              <option value="th">Tiếng Thái (th)</option>
+            </select>
+
+            <select id="voiceGenderFilter" class="form-control" style="min-width:155px; width:auto;"
+              aria-label="Lọc theo giới tính" onchange="onVoiceFilterChange()">
+              <option value="all">Tất cả giới tính</option>
+              <option value="female">Giọng Nữ</option>
+              <option value="male">Giọng Nam</option>
+            </select>
+          </div>
+        </div>
+
+        <!-- Desktop Table View (Columns: Giọng đọc, Voice ID, Ngôn ngữ, Giới tính, Mô tả, Nghe thử) -->
+        <div class="table-wrap voices-desktop-table">
+          <table>
+            <thead>
+              <tr>
+                <th style="width:24%;">Giọng đọc</th>
+                <th style="width:21%;">Voice ID</th>
+                <th style="width:12%;">Ngôn ngữ</th>
+                <th style="width:10%;">Giới tính</th>
+                <th style="width:21%;">Mô tả</th>
+                <th style="width:12%; text-align:right;">Nghe thử</th>
+              </tr>
+            </thead>
+            <tbody id="voicesTableBody">
+              <tr>
+                <td colspan="6">
+                  <div class="state-box">
+                    <div class="state-title">Đang tải thư viện giọng nói...</div>
+                  </div>
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+
+        <!-- Mobile Card View (<= 768px) -->
+        <div id="voicesMobileList" class="voices-mobile-list" aria-live="polite"></div>
+      </div>
+    </section>
+
+    <!-- TAB 5: QUICK API DOCS -->
+    <section id="tab-apidocs" class="tab-panel">
+      <div class="panel-card">
+        <div class="panel-header">
+          <div class="panel-title-group">
+            <h2>Hướng dẫn tích hợp API (Port 8686)</h2>
+            <p>Sử dụng header <code class="code-chip">X-API-Key: <span id="docSampleKey">kv_live_...</span></code> khi
+              gửi request từ hệ thống bên ngoài</p>
+          </div>
+        </div>
+        <pre class="code-snippet"># 1. Truyền Text -> Nhận trực tiếp file âm thanh Giọng nói (.mp3)
+curl -X POST "http://localhost:8686/api/v1/tts" \
+  -H "X-API-Key: YOUR_API_KEY" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "text": "Xin chào, đây là giọng đọc tạo từ API KingVoice",
+    "language": "vi",
+    "voice_id": "multi:vi-VN-NamMinh",
+    "output_format": "mp3"
+  }' --output voice.mp3
+
+# 2. Nhận diện giọng nói từ Audio/Video -> Tự dịch & Tạo ra Giọng AI mới
+curl -X POST "http://localhost:8686/api/v1/audio/dub" \
+  -H "X-API-Key: YOUR_API_KEY" \
+  -F "file=@input_video_or_audio.mp4" \
+  -F "target_language=vi" \
+  -F "voice_id=multi:vi-VN-HoaiMy"
+
+# 3. Lồng tiếng Video hoàn chỉnh (Cắt + Whisper STT + Dịch + TTS + Ghép MP4)
+curl -X POST "http://localhost:8686/api/v1/videos/generate" \
+  -H "X-API-Key: YOUR_API_KEY" \
+  -F "files=@input.mp4" \
+  -F "target_language=ru" \
+  -F "voice_id=multi:ru-RU-Dmitry" \
+  -F "burn_subtitles=true"</pre>
+      </div>
+    </section>
+  </main>
+
+  <div class="toast" id="toast" role="status" aria-live="polite"></div>
+  <audio id="previewAudioPlayer" style="display:none;"></audio>
+
+  <script>
+    const LANGUAGE_NAMES = {
+      vi: "Tiếng Việt",
+      ru: "Tiếng Nga",
+      en: "Tiếng Anh",
+      ja: "Tiếng Nhật",
+      ko: "Tiếng Hàn",
+      zh: "Tiếng Trung",
+      fr: "Tiếng Pháp",
+      de: "Tiếng Đức",
+      es: "Tây Ban Nha",
+      th: "Tiếng Thái"
+    };
+
+    let allVoices = [];
+    let voicesLoadError = false;
+    let activeApiKey = localStorage.getItem("kingvoice_api_key") || "";
+    let lastJobsFingerprint = "";
+    let isPollingJobs = false;
+
+    // Single-instance Audio Preview State Machine
+    let previewState = {
+      voiceId: null,
+      status: "idle", // "idle" | "loading" | "playing" | "error"
+      abortController: null,
+      objectUrl: null
+    };
+
+    const previewPlayer = document.getElementById("previewAudioPlayer");
+
+    previewPlayer.addEventListener("ended", () => {
+      if (previewState.status === "playing") {
+        previewState.status = "idle";
+        previewState.voiceId = null;
+        updatePreviewButtonsUI();
+      }
+    });
+
+    previewPlayer.addEventListener("error", () => {
+      if (previewState.voiceId && previewState.status === "playing") {
+        previewState.status = "error";
+        updatePreviewButtonsUI();
+      }
+    });
+
+    function showToast(msg) {
+      const t = document.getElementById("toast");
+      t.textContent = msg;
+      t.style.display = "inline-flex";
+      clearTimeout(window._toastTimer);
+      window._toastTimer = setTimeout(() => {
+        t.style.display = "none";
+      }, 2800);
+    }
+
+    function apiHeaders(extra = {}) {
+      const h = { "X-KingVoice-Dashboard": "1", ...extra };
+      if (activeApiKey) h["X-API-Key"] = activeApiKey;
+      return h;
+    }
+
+    function switchTab(name, btn) {
+      document.querySelectorAll(".tab-panel").forEach(p => p.classList.remove("active"));
+      document.querySelectorAll(".tab-btn").forEach(b => {
+        b.classList.remove("active");
+        b.setAttribute("aria-selected", "false");
+      });
+      const target = document.getElementById("tab-" + name);
+      if (target) target.classList.add("active");
+      if (btn) {
+        btn.classList.add("active");
+        btn.setAttribute("aria-selected", "true");
+      }
+    }
+
+    async function loadHealth() {
+      const redisPill = document.getElementById("redisPill");
+      const portPill = document.getElementById("portPill");
+      try {
+        const r = await fetch("/health");
+        if (!r.ok) throw new Error("Health check failed");
+        const d = await r.json();
+        document.getElementById("statQueueSize").textContent =
+          (d.queue_size || 0) + (d.active_tasks ? ` (${d.active_tasks} chạy)` : "");
+        const isRedis = !!d.redis_connected;
+        redisPill.classList.remove("offline");
+        portPill.classList.remove("offline");
+        document.getElementById("redisStatusText").textContent = isRedis
+          ? "Redis Queue: Đang chạy"
+          : "Queue: Memory (Local)";
+        document.getElementById("statQueueBackend").textContent = isRedis
+          ? "Redis 7 Persistent • Ổn định"
+          : "In-Memory Queue • Hoạt động";
+        document.getElementById("statusText").textContent = `Port ${d.port || 8686} Online`;
+        if (d.file_retention_hours) {
+          const rb = document.getElementById("retentionBadge");
+          if (rb) rb.textContent = `Tự động xóa file sau ${d.file_retention_hours} giờ`;
+        }
+      } catch (e) {
+        portPill.classList.add("offline");
+        document.getElementById("statusText").textContent = "Đang kết nối lại...";
+      }
+    }
+
+    async function loadApiKeys() {
+      try {
+        const r = await fetch("/api/v1/admin/keys", { headers: apiHeaders() });
+        if (!r.ok) return;
+        const data = await r.json();
+        const keys = data.keys || [];
+        const reqKey = !!data.require_api_key;
+
+        document.getElementById("chkRequireApiKey").checked = reqKey;
+        const activeList = keys.filter(k => k.isActive);
+        document.getElementById("statActiveKeys").textContent = activeList.length;
+        document.getElementById("statKeyMode").textContent = reqKey
+          ? "Bảo mật X-API-Key: Đang bật"
+          : "Chế độ Public (Không cần Key)";
+
+        if (activeList.length > 0) {
+          const getKeyStr = k => k.apiKey || k.key || "";
+          const stillValid = activeList.some(k => getKeyStr(k) === activeApiKey);
+          if (!activeApiKey || !stillValid) {
+            activeApiKey = getKeyStr(activeList[0]);
+            localStorage.setItem("kingvoice_api_key", activeApiKey);
+          }
+          document.getElementById("docSampleKey").textContent = activeApiKey;
+        }
+
+        const tbody = document.getElementById("keysTableBody");
+        if (keys.length === 0) {
+          tbody.innerHTML = `<tr><td colspan="7"><div class="state-box"><div class="state-title">Chưa có API Key nào</div></div></td></tr>`;
+          return;
+        }
+
+        tbody.innerHTML = keys.map(k => {
+          const rawKey = k.apiKey || k.key || "";
+          const reqCount = k.requestCount !== undefined ? k.requestCount : (k.usageCount || 0);
+          return `
+        <tr>
+          <td><strong>${escapeHtml(k.name)}</strong></td>
+          <td>
+            <div class="voice-id-cell" style="max-width:320px;">
+              <code class="code-chip" style="max-width:260px; user-select:all;" title="${escapeHtml(rawKey)}">${escapeHtml(rawKey)}</code>
+              <button type="button" class="btn-icon-only" title="Sao chép API Key" aria-label="Sao chép API Key" onclick="copyKey('${escapeJs(rawKey)}', this)">
+                ${svgCopyIcon()}
+              </button>
+            </div>
+          </td>
+          <td>${k.isActive ? '<span class="badge badge-green">Đang bật</span>' : '<span class="badge badge-red">Đã khóa</span>'}</td>
+          <td><strong>${reqCount}</strong> lần</td>
+          <td style="color:var(--muted); font-size:12.5px;">${escapeHtml(k.lastUsedAt || "Chưa dùng")}</td>
+          <td style="color:var(--muted); font-size:12.5px;">${escapeHtml(k.createdAt || "")}</td>
+          <td>
+            <div style="display:flex; gap:6px;">
+              <button class="btn btn-secondary btn-sm" onclick="copyKey('${escapeJs(rawKey)}', this)">Sao chép</button>
+              <button class="btn btn-secondary btn-sm" onclick="toggleKeyStatus('${escapeJs(k.id)}', ${!k.isActive})">${k.isActive ? 'Khóa' : 'Mở'}</button>
+              <button class="btn btn-danger btn-sm" onclick="deleteApiKey('${escapeJs(k.id)}')">Xóa</button>
+            </div>
+          </td>
+        </tr>
+      `;
+        }).join("");
+      } catch (e) { }
+    }
+
+    async function copyTextSafe(text) {
+      const value = String(text || "");
+      if (!value) return false;
+      if (navigator.clipboard && window.isSecureContext) {
+        try {
+          await navigator.clipboard.writeText(value);
+          return true;
+        } catch (err) {
+          // fallback below
+        }
+      }
+      // Fallback for http://0.0.0.0:8686 or HTTP LAN/VPS IPs where navigator.clipboard is blocked
+      const ta = document.createElement("textarea");
+      ta.value = value;
+      ta.setAttribute("readonly", "");
+      ta.style.position = "fixed";
+      ta.style.top = "-9999px";
+      ta.style.left = "-9999px";
+      ta.style.opacity = "0";
+      document.body.appendChild(ta);
+      ta.focus();
+      ta.select();
+      ta.setSelectionRange(0, value.length);
+      let ok = false;
+      try {
+        ok = document.execCommand("copy");
+      } catch (err) {
+        ok = false;
+      }
+      document.body.removeChild(ta);
+      return ok;
+    }
+
+    async function copyKey(key, btnEl) {
+      if (!key) {
+        showToast("Không tìm thấy mã API Key để sao chép");
+        return;
+      }
+      await copyTextSafe(key);
+      activeApiKey = key;
+      localStorage.setItem("kingvoice_api_key", key);
+      const sampleEl = document.getElementById("docSampleKey");
+      if (sampleEl) sampleEl.textContent = key;
+      if (btnEl) flashCopiedButton(btnEl);
+      showToast("Đã sao chép API Key: " + key);
+    }
+
+    async function copyVoiceId(voiceId, btnEl) {
+      await copyTextSafe(voiceId);
+      if (btnEl) flashCopiedButton(btnEl);
+      showToast("Đã sao chép: " + voiceId);
+    }
+
+    function flashCopiedButton(btnEl) {
+      const original = btnEl.innerHTML;
+      btnEl.classList.add("copied");
+      btnEl.setAttribute("title", "Đã sao chép");
+      btnEl.innerHTML = svgCheckIcon();
+      setTimeout(() => {
+        btnEl.classList.remove("copied");
+        btnEl.setAttribute("title", "Sao chép Voice ID");
+        btnEl.innerHTML = original;
+      }, 1500);
+    }
+
+    async function createApiKey() {
+      const name = document.getElementById("newKeyName").value.trim() || "External Client";
+      const custom_key = document.getElementById("newKeyCustom").value.trim() || null;
+      const r = await fetch("/api/v1/admin/keys", {
+        method: "POST",
+        headers: apiHeaders({ "Content-Type": "application/json" }),
+        body: JSON.stringify({ name, custom_key })
+      });
+      if (r.ok) {
+        document.getElementById("newKeyName").value = "";
+        document.getElementById("newKeyCustom").value = "";
+        showToast("Đã tạo API Key mới");
+        loadApiKeys();
+      } else {
+        const err = await r.json();
+        showToast("Lỗi: " + (err.detail || "Không thể tạo key"));
+      }
+    }
+
+    async function toggleKeyStatus(id, isActive) {
+      await fetch(`/api/v1/admin/keys/${id}`, {
+        method: "PATCH",
+        headers: apiHeaders({ "Content-Type": "application/json" }),
+        body: JSON.stringify({ is_active: isActive })
+      });
+      loadApiKeys();
+    }
+
+    async function deleteApiKey(id) {
+      if (!confirm("Xóa API Key này?")) return;
+      await fetch(`/api/v1/admin/keys/${id}`, { method: "DELETE", headers: apiHeaders() });
+      loadApiKeys();
+    }
+
+    async function toggleRequireApiKey(checked) {
+      await fetch("/api/v1/admin/settings", {
+        method: "POST",
+        headers: apiHeaders({ "Content-Type": "application/json" }),
+        body: JSON.stringify({ require_api_key: checked })
+      });
+      showToast(checked ? "Đã bật yêu cầu X-API-Key" : "Đã tắt yêu cầu X-API-Key");
+      loadApiKeys();
+    }
+
+    // Parse raw voice name like "Ava (English US — Nữ tự nhiên)" into clean title + secondary meta
+    function parseVoiceDisplayName(rawName, rawSubtitle, engineLabel) {
+      const str = String(rawName || "").trim();
+      const cleanedSub = String(rawSubtitle || "")
+        .replace(/^[\u{1F1E6}-\u{1F1FF}]{2}\s*/u, "")
+        .trim();
+      const match = str.match(/^([^()]+)\(([^)]+)\)$/);
+      if (match) {
+        return {
+          primary: match[1].trim(),
+          secondary: match[2].trim(),
+          description: cleanedSub || engineLabel
+        };
+      }
+      return {
+        primary: str,
+        secondary: engineLabel,
+        description: cleanedSub || str
+      };
+    }
+
+    async function loadVoices() {
+      voicesLoadError = false;
+      try {
+        const r = await fetch("/api/v1/voices?include_vieneu_presets=true", { headers: apiHeaders() });
+        if (!r.ok) throw new Error("Failed to load voices");
+        const data = await r.json();
+        const total = data.total_voices || 0;
+        document.getElementById("statTotalVoices").textContent = total;
+        document.getElementById("tabVoiceCount").textContent = total;
+
+        const multi = (data.multilingual_voices || []).map(v => {
+          const parsed = parseVoiceDisplayName(v.name, v.subtitle, "Neural Multilingual");
+          return {
+            id: v.id,
+            name: v.name,
+            primaryName: parsed.primary,
+            secondaryMeta: parsed.secondary,
+            lang: v.lang || "vi",
+            country: v.country || "VN",
+            gender: v.gender || "female",
+            description: parsed.description
+          };
+        });
+
+        const presets = (data.vieneu_preset_voices || []).map(v => {
+          const parsed = parseVoiceDisplayName(v.name, "Giọng VieNeu Offline • Chuẩn tự nhiên", "VieNeu Offline");
+          return {
+            id: v.id,
+            name: v.name,
+            primaryName: parsed.primary,
+            secondaryMeta: parsed.secondary,
+            lang: "vi",
+            country: v.country || "VN",
+            gender: v.gender || "female",
+            description: parsed.description
+          };
+        });
+
+        const cloned = (data.cloned_voices || []).map(v => ({
+          id: v.id,
+          name: v.name,
+          primaryName: v.id,
+          secondaryMeta: "Giọng nhân bản (Cloned)",
+          lang: v.lang || "vi",
+          country: v.country || "VN",
+          gender: "unknown",
+          description: "Giọng nhân bản tùy chỉnh từ mẫu âm thanh tham chiếu"
+        }));
+
+        allVoices = [...multi, ...presets, ...cloned];
+
+        updateLanguageFilterCounts();
+        filterStudioVoices("ttsLang", "ttsVoice");
+        filterStudioVoices("newJobLang", "newJobVoice");
+        renderVoicesLibrary();
+      } catch (e) {
+        voicesLoadError = true;
+        renderVoicesLibrary();
+      }
+    }
+
+    function updateLanguageFilterCounts() {
+      const sel = document.getElementById("voiceLangFilter");
+      if (sel) {
+        const counts = {};
+        allVoices.forEach(v => {
+          counts[v.lang] = (counts[v.lang] || 0) + 1;
+        });
+        Array.from(sel.options).forEach(opt => {
+          if (opt.value === "all") {
+            opt.textContent = `Tất cả ngôn ngữ (${allVoices.length})`;
+          } else {
+            const label = LANGUAGE_NAMES[opt.value] || opt.value.toUpperCase();
+            const c = counts[opt.value] || 0;
+            opt.textContent = `${label} (${c})`;
+          }
+        });
+      }
+
+      const cSel = document.getElementById("voiceCountryFilter");
+      if (cSel) {
+        const cCounts = {};
+        allVoices.forEach(v => {
+          const code = (v.country || "VN").toUpperCase();
+          cCounts[code] = (cCounts[code] || 0) + 1;
+        });
+        Array.from(cSel.options).forEach(opt => {
+          if (opt.value === "all") {
+            opt.textContent = `Tất cả quốc gia (${allVoices.length})`;
+          } else {
+            const baseLabel = opt.textContent.replace(/\s*\(\d+\)$/, "");
+            const c = cCounts[opt.value] || 0;
+            opt.textContent = `${baseLabel} (${c})`;
+          }
+        });
+      }
+    }
+
+    function filterStudioVoices(langSelectId, voiceSelectId) {
+      const lang = document.getElementById(langSelectId).value;
+      const sel = document.getElementById(voiceSelectId);
+      const filtered = lang === "original" ? allVoices : allVoices.filter(v => v.lang === lang);
+      sel.innerHTML = `<option value="auto">Tự động chọn giọng chuẩn (${lang.toUpperCase()})</option>` +
+        filtered.map(v => `<option value="${escapeHtml(v.id)}">${escapeHtml(v.primaryName)} — ${escapeHtml(v.secondaryMeta)} [${v.gender === 'male' ? 'Nam' : 'Nữ'}]</option>`).join("");
+    }
+
+    function clearVoiceSearch() {
+      const input = document.getElementById("voiceSearchInput");
+      input.value = "";
+      onVoiceFilterChange();
+      input.focus();
+    }
+
+    function resetVoiceFilters() {
+      document.getElementById("voiceSearchInput").value = "";
+      const cSel = document.getElementById("voiceCountryFilter");
+      if (cSel) cSel.value = "all";
+      document.getElementById("voiceLangFilter").value = "all";
+      document.getElementById("voiceGenderFilter").value = "all";
+      onVoiceFilterChange();
+    }
+
+    function onVoiceFilterChange() {
+      const q = document.getElementById("voiceSearchInput").value.trim();
+      document.getElementById("voiceSearchClear").style.display = q ? "inline-flex" : "none";
+      renderVoicesLibrary();
+    }
+
+    function getFilteredVoices() {
+      const q = document.getElementById("voiceSearchInput").value.trim().toLowerCase();
+      const cSel = document.getElementById("voiceCountryFilter");
+      const country = cSel ? cSel.value : "all";
+      const lang = document.getElementById("voiceLangFilter").value;
+      const gender = document.getElementById("voiceGenderFilter").value;
+
+      return allVoices.filter(v => {
+        if (country !== "all" && (v.country || "").toUpperCase() !== country) return false;
+        if (lang !== "all" && v.lang !== lang) return false;
+        if (gender !== "all" && v.gender !== gender) return false;
+        if (q) {
+          const hay = `${v.id} ${v.name} ${v.primaryName} ${v.secondaryMeta} ${v.description} ${v.country || ""}`.toLowerCase();
+          if (!hay.includes(q)) return false;
+        }
+        return true;
+      });
+    }
+
+    function renderVoicesLibrary() {
+      const tbody = document.getElementById("voicesTableBody");
+      const mobileList = document.getElementById("voicesMobileList");
+      const subtitleEl = document.getElementById("voiceLibrarySubtitle");
+
+      if (voicesLoadError) {
+        const errHtml = `
+        <div class="state-box">
+          <div class="state-title">Không thể tải thư viện giọng nói</div>
+          <div class="state-desc">Vui lòng kiểm tra kết nối tới máy chủ KingVoice và thử lại.</div>
+          <button type="button" class="btn btn-primary btn-sm" onclick="loadVoices()">Thử lại</button>
+        </div>
+      `;
+        tbody.innerHTML = `<tr><td colspan="6">${errHtml}</td></tr>`;
+        mobileList.innerHTML = errHtml;
+        return;
+      }
+
+      const list = getFilteredVoices();
+      subtitleEl.textContent = `Hiển thị ${list.length} / ${allVoices.length} giọng đọc AI đa ngôn ngữ sẵn sàng cho lồng tiếng và TTS`;
+
+      if (list.length === 0) {
+        const emptyHtml = `
+        <div class="state-box">
+          <div class="state-title">Không tìm thấy giọng đọc phù hợp</div>
+          <div class="state-desc">Thử từ khóa khác hoặc đặt lại bộ lọc ngôn ngữ và giới tính.</div>
+          <button type="button" class="btn btn-secondary btn-sm" onclick="resetVoiceFilters()">Xóa bộ lọc</button>
+        </div>
+      `;
+        tbody.innerHTML = `<tr><td colspan="6">${emptyHtml}</td></tr>`;
+        mobileList.innerHTML = emptyHtml;
+        return;
+      }
+
+      tbody.innerHTML = list.map(v => {
+        const langCode = (v.lang || "vi").toUpperCase();
+        const langLabel = LANGUAGE_NAMES[v.lang] || langCode;
+        const genderLabel = v.gender === "male" ? "Nam" : (v.gender === "female" ? "Nữ" : "Tùy chỉnh");
+
+        return `
+        <tr>
+          <td>
+            <div class="voice-primary-name">${escapeHtml(v.primaryName)}</div>
+            <div class="voice-sub-meta">${escapeHtml(v.secondaryMeta)}</div>
+          </td>
+          <td>
+            <div class="voice-id-cell">
+              <code class="code-chip" title="${escapeHtml(v.id)}">${escapeHtml(v.id)}</code>
+              <button
+                type="button"
+                class="btn-icon-only"
+                title="Sao chép Voice ID"
+                aria-label="Sao chép Voice ID ${escapeHtml(v.id)}"
+                onclick="copyVoiceId('${escapeJs(v.id)}', this)"
+              >
+                ${svgCopyIcon()}
+              </button>
+            </div>
+          </td>
+          <td>
+            <span class="badge badge-neutral" title="${escapeHtml(langLabel)}">${langCode} · ${escapeHtml(langLabel)}</span>
+          </td>
+          <td style="color:var(--text-secondary); font-weight:500;">${genderLabel}</td>
+          <td>
+            <div class="desc-clamp" title="${escapeHtml(v.description)}">${escapeHtml(v.description)}</div>
+          </td>
+          <td style="text-align:right;">
+            ${renderPreviewButtonHtml(v.id)}
+          </td>
+        </tr>
+      `;
+      }).join("");
+
+      mobileList.innerHTML = list.map(v => {
+        const langCode = (v.lang || "vi").toUpperCase();
+        const langLabel = LANGUAGE_NAMES[v.lang] || langCode;
+        const genderLabel = v.gender === "male" ? "Nam" : (v.gender === "female" ? "Nữ" : "Tùy chỉnh");
+
+        return `
+        <div class="voice-mobile-card">
+          <div class="voice-mobile-top">
+            <div>
+              <div class="voice-primary-name">${escapeHtml(v.primaryName)}</div>
+              <div class="voice-sub-meta">${escapeHtml(v.secondaryMeta)}</div>
+            </div>
+            <div class="voice-mobile-badges">
+              <span class="badge badge-neutral">${langCode} · ${escapeHtml(langLabel)}</span>
+              <span class="badge badge-neutral">${genderLabel}</span>
+            </div>
+          </div>
+          <div class="desc-clamp" style="max-width:100%;" title="${escapeHtml(v.description)}">${escapeHtml(v.description)}</div>
+          <div class="voice-mobile-footer">
+            <div class="voice-id-cell" style="max-width:62%;">
+              <code class="code-chip" title="${escapeHtml(v.id)}">${escapeHtml(v.id)}</code>
+              <button
+                type="button"
+                class="btn-icon-only"
+                title="Sao chép Voice ID"
+                aria-label="Sao chép Voice ID ${escapeHtml(v.id)}"
+                onclick="copyVoiceId('${escapeJs(v.id)}', this)"
+              >
+                ${svgCopyIcon()}
+              </button>
+            </div>
+            ${renderPreviewButtonHtml(v.id)}
+          </div>
+        </div>
+      `;
+      }).join("");
+    }
+
+    function renderPreviewButtonHtml(voiceId) {
+      const isCurrent = previewState.voiceId === voiceId;
+      const st = isCurrent ? previewState.status : "idle";
+
+      if (st === "loading") {
+        return `
+        <button type="button" class="btn btn-sm btn-preview" data-preview-voice="${escapeHtml(voiceId)}" onclick="previewVoice('${escapeJs(voiceId)}')">
+          <svg class="icon icon-sm spin" viewBox="0 0 24 24" aria-hidden="true">
+            <path d="M21 12a9 9 0 1 1-6.219-8.56"></path>
+          </svg>
+          <span>Đang tải...</span>
+        </button>
+      `;
+      }
+      if (st === "playing") {
+        return `
+        <button type="button" class="btn btn-sm btn-preview is-playing" data-preview-voice="${escapeHtml(voiceId)}" onclick="previewVoice('${escapeJs(voiceId)}')">
+          <svg class="icon icon-sm" viewBox="0 0 24 24" aria-hidden="true">
+            <rect x="6" y="5" width="4" height="14" fill="currentColor"></rect>
+            <rect x="14" y="5" width="4" height="14" fill="currentColor"></rect>
+          </svg>
+          <span>Dừng</span>
+        </button>
+      `;
+      }
+      if (st === "error") {
+        return `
+        <button type="button" class="btn btn-sm btn-preview is-error" data-preview-voice="${escapeHtml(voiceId)}" onclick="previewVoice('${escapeJs(voiceId)}')" title="Lỗi phát mẫu thử — Nhấn để thử lại">
+          <svg class="icon icon-sm" viewBox="0 0 24 24" aria-hidden="true">
+            <polyline points="23 4 23 10 17 10"></polyline>
+            <path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"></path>
+          </svg>
+          <span>Thử lại</span>
+        </button>
+      `;
+      }
+      return `
+      <button type="button" class="btn btn-sm btn-preview" data-preview-voice="${escapeHtml(voiceId)}" onclick="previewVoice('${escapeJs(voiceId)}')">
+        <svg class="icon icon-sm" viewBox="0 0 24 24" aria-hidden="true">
+          <polygon points="6 4 20 12 6 20 6 4" fill="currentColor" stroke="none"></polygon>
+        </svg>
+        <span>Nghe thử</span>
+      </button>
+    `;
+    }
+
+    function updatePreviewButtonsUI() {
+      document.querySelectorAll("[data-preview-voice]").forEach(btn => {
+        const vid = btn.getAttribute("data-preview-voice");
+        const wrapper = document.createElement("div");
+        wrapper.innerHTML = renderPreviewButtonHtml(vid).trim();
+        if (wrapper.firstElementChild) {
+          btn.replaceWith(wrapper.firstElementChild);
+        }
+      });
+    }
+
+    function stopCurrentPreview() {
+      if (previewState.abortController) {
+        try { previewState.abortController.abort(); } catch (e) { }
+        previewState.abortController = null;
+      }
+      try {
+        previewPlayer.pause();
+        previewPlayer.currentTime = 0;
+      } catch (e) { }
+      if (previewState.objectUrl) {
+        try { URL.revokeObjectURL(previewState.objectUrl); } catch (e) { }
+        previewState.objectUrl = null;
+      }
+    }
+
+    async function previewVoice(voiceId) {
+      // Toggle stop if clicking the currently playing/loading voice
+      if (previewState.voiceId === voiceId && (previewState.status === "playing" || previewState.status === "loading")) {
+        stopCurrentPreview();
+        previewState.voiceId = null;
+        previewState.status = "idle";
+        updatePreviewButtonsUI();
+        return;
+      }
+
+      stopCurrentPreview();
+      const controller = new AbortController();
+      previewState.voiceId = voiceId;
+      previewState.status = "loading";
+      previewState.abortController = controller;
+      updatePreviewButtonsUI();
+
+      try {
+        const r = await fetch("/api/v1/voices/preview", {
+          method: "POST",
+          headers: apiHeaders({ "Content-Type": "application/json" }),
+          body: JSON.stringify({ voice_id: voiceId }),
+          signal: controller.signal
+        });
+        if (!r.ok) throw new Error("Preview request failed");
+        const blob = await r.blob();
+        if (controller.signal.aborted) return;
+
+        const url = URL.createObjectURL(blob);
+        previewState.objectUrl = url;
+        previewState.status = "playing";
+        previewPlayer.src = url;
+        updatePreviewButtonsUI();
+        await previewPlayer.play();
+      } catch (e) {
+        if (e && e.name === "AbortError") return;
+        previewState.status = "error";
+        updatePreviewButtonsUI();
+        showToast("Không thể phát giọng mẫu. Nhấn 'Thử lại'.");
+      }
+    }
+
+    function formatStageBadge(job) {
+      const st = job.stage || "queued";
+      const fSt = job.finalVideoStatus || "";
+      if (fSt === "done" || st === "done") return `<span class="badge badge-green">Hoàn tất</span>`;
+      if (st === "failed" || fSt === "failed") return `<span class="badge badge-red" title="${escapeHtml(job.error || '')}">Lỗi xử lý</span>`;
+      if (fSt === "processing" || st === "merging") return `<span class="badge badge-amber">Đang ghép file</span>`;
+      if (st === "cutting") return `<span class="badge badge-blue">Đang cắt clip</span>`;
+      if (st === "transcribing") return `<span class="badge badge-blue">Nhận diện &amp; dịch</span>`;
+      if (st === "generating_voice") return `<span class="badge badge-amber">Đang tạo giọng AI</span>`;
+      return `<span class="badge badge-neutral">${escapeHtml(st)}</span>`;
+    }
+
+    function formatJobType(type) {
+      if (type === "tts") return `<span class="badge badge-neutral">Text-to-Voice</span>`;
+      if (type === "audio") return `<span class="badge badge-amber">Speech-to-Voice</span>`;
+      return `<span class="badge badge-blue">Video Dub</span>`;
+    }
+
+    let pollTimer = null;
+
+    function scheduleNextJobPoll(hasRunningTasks) {
+      if (pollTimer) {
+        clearTimeout(pollTimer);
+        pollTimer = null;
+      }
+      // Chỉ tự động poll khi THỰC SỰ có task đang xử lý (runningCount > 0) và tab đang hiển thị.
+      // Khi không có task nào đang chạy -> Dừng hoàn toàn (0 request nền)!
+      if (hasRunningTasks && !document.hidden) {
+        pollTimer = setTimeout(() => {
+          loadJobs(false);
+        }, 5000);
+      }
+    }
+
+    async function manualRefresh() {
+      await Promise.all([loadHealth(), loadJobs(true)]);
+      showToast("Đã làm mới dữ liệu");
+    }
+
+    async function loadJobs(forceRender = false) {
+      if (isPollingJobs && !forceRender) return;
+      isPollingJobs = true;
+      let hasRunning = false;
+      try {
+        const r = await fetch("/api/v1/jobs?limit=50", { headers: apiHeaders() });
+        if (!r.ok) return;
+        const data = await r.json();
+        const jobs = data.jobs || [];
+
+        document.getElementById("statTotalJobs").textContent = jobs.length;
+        document.getElementById("tabTaskCount").textContent = jobs.length;
+        const doneCount = jobs.filter(j => j.finalVideoStatus === "done" || j.stage === "done").length;
+        const runningCount = jobs.filter(j => {
+          const isFinished = j.finalVideoStatus === "done" || j.finalVideoStatus === "failed" || j.stage === "done" || j.stage === "failed";
+          const isIdleReady = j.stage === "ready" && (!j.finalVideoStatus || j.finalVideoStatus === "idle");
+          return !isFinished && !isIdleReady;
+        }).length;
+        hasRunning = runningCount > 0;
+        document.getElementById("statActiveJobs").textContent = `${runningCount} đang xử lý • ${doneCount} hoàn tất`;
+        document.getElementById("statQueueSize").textContent = runningCount;
+
+        const fingerprint = JSON.stringify(jobs.map(j => [
+          j.id, j.stage, j.finalVideoStatus, j.error,
+          j.progress ? j.progress.progress_percent : 0,
+          j.progress ? j.progress.tts_done_segments : 0
+        ]));
+        if (!forceRender && fingerprint === lastJobsFingerprint) {
+          return;
+        }
+        lastJobsFingerprint = fingerprint;
+
+        const tbody = document.getElementById("jobsTableBody");
+        if (jobs.length === 0) {
+          tbody.innerHTML = `
+          <tr>
+            <td colspan="8">
+              <div class="state-box">
+                <div class="state-title">Chưa có task nào trong hệ thống</div>
+                <div class="state-desc">Bắt đầu bằng cách tạo giọng nói từ văn bản hoặc tải video lên để lồng tiếng tự động.</div>
+                <button type="button" class="btn btn-primary btn-sm" onclick="switchTab('studio', document.querySelectorAll('.tab-btn')[1])">Tạo Task mới</button>
+              </div>
+            </td>
+          </tr>
+        `;
+          return;
+        }
+
+        const keyParam = activeApiKey ? `?api_key=${encodeURIComponent(activeApiKey)}` : "";
+        tbody.innerHTML = jobs.map(j => {
+          const p = j.progress || {};
+          const pct = p.progress_percent || 0;
+          const isDone = j.finalVideoStatus === "done";
+          const isTts = j.type === "tts";
+          const isAudio = j.type === "audio";
+
+          return `
+          <tr>
+            <td>
+              <div style="font-weight:600; color:var(--text);">${escapeHtml(j.originalFilename || j.id)}</div>
+              <div style="font-size:11.5px; color:var(--muted); font-family:'JetBrains Mono', monospace;">ID: ${escapeHtml(j.id.slice(0, 8))}...</div>
+            </td>
+            <td>${formatJobType(j.type)}</td>
+            <td>
+              <div style="display:flex; align-items:center; gap:6px;">
+                <span class="badge badge-neutral">${escapeHtml((j.targetLanguage || "vi").toUpperCase())}</span>
+                <code class="code-chip" title="${escapeHtml(j.defaultVoiceId || 'auto')}">${escapeHtml(j.defaultVoiceId || "auto")}</code>
+              </div>
+            </td>
+            <td>
+              ${formatStageBadge(j)}
+              ${j.error ? `<div style="font-size:11.5px; color:var(--red); margin-top:4px; max-width:220px;">${escapeHtml(j.error)}</div>` : ""}
+            </td>
+            <td>
+              <div class="progress-wrap">
+                <div class="progress-fill ${isDone ? 'done' : ''}" style="width:${pct}%"></div>
+              </div>
+              <div style="font-size:11.5px; color:var(--muted); font-weight:500;">
+                ${pct}% (${p.tts_done_segments || 0}/${p.total_segments || 0} đoạn)
+              </div>
+            </td>
+            <td><span style="font-size:12.5px; color:var(--text-secondary); font-weight:500;">${escapeHtml(j.apiKeyName || "Dashboard")}</span></td>
+            <td style="font-size:12px; color:var(--muted);">${escapeHtml(j.createdAt || "")}</td>
+            <td>
+              <div style="display:flex; gap:6px; flex-wrap:wrap;">
+                ${isDone && !isTts && !isAudio ? `<a class="btn btn-primary btn-sm" href="/api/v1/jobs/${encodeURIComponent(j.id)}/download/video${keyParam}" target="_blank">Tải MP4</a>` : ""}
+                ${isDone ? `<a class="btn btn-secondary btn-sm" href="/api/v1/jobs/${encodeURIComponent(j.id)}/download/voice${keyParam}" target="_blank">Tải Voice</a>` : ""}
+                ${!isTts && (p.transcribed_segments > 0 || isDone) ? `<a class="btn btn-secondary btn-sm" href="/api/v1/jobs/${encodeURIComponent(j.id)}/download/srt${keyParam}" target="_blank">Tải SRT</a>` : ""}
+                <button class="btn btn-danger btn-sm" onclick="deleteJob('${escapeJs(j.id)}')">Xóa</button>
+              </div>
+            </td>
+          </tr>
+        `;
+        }).join("");
+      } catch (e) {
+      } finally {
+        isPollingJobs = false;
+        scheduleNextJobPoll(hasRunning);
+      }
+    }
+
+    async function submitTtsTask(asyncQueue = false) {
+      const text = document.getElementById("ttsTextInput").value.trim();
+      if (!text) {
+        showToast("Vui lòng nhập nội dung văn bản");
+        return;
+      }
+      const language = document.getElementById("ttsLang").value;
+      const voice_id = document.getElementById("ttsVoice").value;
+      const translate_text = document.getElementById("ttsTranslate").checked;
+
+      const btn = document.getElementById(asyncQueue ? "btnTtsQueue" : "btnTtsSync");
+      const origLabel = btn.textContent;
+      btn.disabled = true;
+      btn.textContent = "Đang xử lý...";
+
+      try {
+        if (asyncQueue) {
+          const r = await fetch("/api/v1/tts/jobs", {
+            method: "POST",
+            headers: apiHeaders({ "Content-Type": "application/json" }),
+            body: JSON.stringify({ text, language, voice_id, translate_text, output_format: "mp3" })
+          });
+          if (r.ok) {
+            showToast("Đã đẩy Task TTS vào hàng đợi");
+            loadJobs(true);
+            switchTab("tasks", document.querySelectorAll(".tab-btn")[0]);
+          } else {
+            const err = await r.json();
+            showToast("Lỗi: " + (err.detail || "Không thể tạo task"));
+          }
+        } else {
+          const r = await fetch("/api/v1/tts", {
+            method: "POST",
+            headers: apiHeaders({ "Content-Type": "application/json" }),
+            body: JSON.stringify({ text, language, voice_id, translate_text, output_format: "mp3" })
+          });
+          if (r.ok) {
+            const blob = await r.blob();
+            const url = URL.createObjectURL(blob);
+            const wrap = document.getElementById("ttsAudioResult");
+            const player = document.getElementById("ttsAudioPlayer");
+            wrap.style.display = "block";
+            player.src = url;
+            player.play();
+            showToast("Đã tạo giọng nói thành công");
+          } else {
+            const err = await r.json();
+            showToast("Lỗi: " + (err.detail || "Không thể tạo giọng nói"));
+          }
+        }
+      } catch (e) {
+        showToast("Lỗi kết nối tới máy chủ");
+      } finally {
+        btn.disabled = false;
+        btn.textContent = origLabel;
+      }
+    }
+
+    async function submitNewJob() {
+      const mode = document.getElementById("jobMode").value;
+      const filesInput = document.getElementById("newJobFiles");
+      const urls = document.getElementById("newJobUrls").value.trim();
+      if ((!filesInput.files || filesInput.files.length === 0) && !urls) {
+        showToast("Vui lòng chọn file hoặc nhập URL");
+        return;
+      }
+
+      const btn = document.getElementById("btnSubmitJob");
+      btn.disabled = true;
+      btn.textContent = "Đang tải lên & xếp hàng...";
+
+      const fd = new FormData();
+      if (mode === "audio_dub") {
+        if (filesInput.files.length > 0) fd.append("file", filesInput.files[0]);
+        if (urls) fd.append("media_url", urls);
+        fd.append("target_language", document.getElementById("newJobLang").value);
+        fd.append("voice_id", document.getElementById("newJobVoice").value);
+        fd.append("sub_mode", document.getElementById("newJobSubMode").value);
+      } else {
+        for (const f of filesInput.files) fd.append("files", f);
+        if (urls) fd.append("video_urls", urls);
+        fd.append("target_language", document.getElementById("newJobLang").value);
+        fd.append("voice_id", document.getElementById("newJobVoice").value);
+        fd.append("sub_mode", document.getElementById("newJobSubMode").value);
+        fd.append("burn_subtitles", document.getElementById("newJobBurnSub").checked ? "true" : "false");
+      }
+
+      const endpoint = mode === "audio_dub" ? "/api/v1/audio/dub" : "/api/v1/videos/generate";
+      try {
+        const r = await fetch(endpoint, {
+          method: "POST",
+          headers: apiHeaders(),
+          body: fd
+        });
+        if (r.ok) {
+          filesInput.value = "";
+          document.getElementById("newJobUrls").value = "";
+          showToast("Đã đưa Task vào hàng đợi xử lý");
+          loadJobs(true);
+          switchTab("tasks", document.querySelectorAll(".tab-btn")[0]);
+        } else {
+          const err = await r.json();
+          showToast("Lỗi: " + (err.detail || "Không thể tạo task"));
+        }
+      } catch (e) {
+        showToast("Lỗi kết nối máy chủ");
+      } finally {
+        btn.disabled = false;
+        btn.textContent = "Bắt đầu chạy Task";
+      }
+    }
+
+    async function deleteJob(id) {
+      if (!confirm("Xóa task này và toàn bộ file liên quan?")) return;
+      await fetch(`/api/v1/jobs/${encodeURIComponent(id)}`, { method: "DELETE", headers: apiHeaders() });
+      showToast("Đã xóa task");
+      loadJobs(true);
+    }
+
+    async function triggerCleanup() {
+      try {
+        const r = await fetch("/api/v1/admin/cleanup", {
+          method: "POST",
+          headers: apiHeaders()
+        });
+        if (!r.ok) throw new Error("Cleanup failed");
+        const d = await r.json();
+        showToast(
+          `Đã dọn dẹp (> ${d.retention_hours}h): xóa ${d.deleted_jobs || 0} task, ${d.deleted_dirs || 0} thư mục, ${d.deleted_temp_files || 0} file tạm`
+        );
+        loadJobs(true);
+      } catch (e) {
+        showToast("Không thể thực hiện dọn file lúc này");
+      }
+    }
+
+    function svgCopyIcon() {
+      return `<svg class="icon icon-sm" viewBox="0 0 24 24" aria-hidden="true"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path></svg>`;
+    }
+
+    function svgCheckIcon() {
+      return `<svg class="icon icon-sm" viewBox="0 0 24 24" aria-hidden="true"><polyline points="20 6 9 17 4 12"></polyline></svg>`;
+    }
+
+    function escapeHtml(str) {
+      return String(str || "")
+        .replace(/&/g, "&amp;")
+        .replace(/</g, "&lt;")
+        .replace(/>/g, "&gt;")
+        .replace(/"/g, "&quot;");
+    }
+
+    function escapeJs(str) {
+      return String(str || "")
+        .replace(/\\/g, "\\\\")
+        .replace(/'/g, "\\'")
+        .replace(/"/g, '\\"');
+    }
+
+    (async function initDashboard() {
+      await loadApiKeys();
+      await Promise.all([loadHealth(), loadVoices(), loadJobs(true)]);
+    })();
+  </script>
+</body>
+
+</html>

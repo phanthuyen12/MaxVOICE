@@ -14,6 +14,9 @@ DEFAULTS = {
     "whisper_model": "small",
     "whisper_device": "cpu",
     "whisper_compute_type": "int8",
+    "target_language": "vi",
+    "sub_mode": "target",      # "target", "bilingual", "original"
+    "burn_subtitles": False,
     "ffmpeg_path": "ffmpeg",
     "ffprobe_path": "ffprobe",
     "storage_dir": str(APP_DIR / "storage"),
